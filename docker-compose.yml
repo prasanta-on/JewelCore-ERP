@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: jewelcore_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-jewelcore}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jewelcore_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-jewelcore_erp}
+    ports:
+      - "${POSTGRES_PORT:-5434}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-jewelcore} -d ${POSTGRES_DB:-jewelcore_erp}",
+        ]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 3s
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: jewelcore_redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6380}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 2s
+
+volumes:
+  postgres_data:
+    name: jewelcore_postgres_data
+  redis_data:
+    name: jewelcore_redis_data

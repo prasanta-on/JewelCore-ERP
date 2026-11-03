@@ -1,0 +1,20 @@
+{
+  "name": "@jewelcore/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@jewelcore/shared": "workspace:*",
+    "bullmq": "^5.26.2",
+    "ioredis": "^5.4.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}
