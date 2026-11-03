@@ -1,13 +1,23 @@
 import express, { type Express, type Request, type Response } from "express";
 import cors from "cors";
+import { correlationIdMiddleware } from "./common/correlationId.js";
+import { createHttpLogger, logger } from "./common/logger.js";
+import { errorHandler, notFoundHandler } from "./common/errorHandler.js";
 
 export function createApp(): Express {
   const app = express();
 
+  // 1. Correlation ID Middleware (must execute first to tag every request)
+  app.use(correlationIdMiddleware);
+
+  // 2. Structured HTTP Logger (Pino)
+  app.use(createHttpLogger());
+
+  // 3. Security & Body Parsing Middleware
   app.use(cors());
   app.use(express.json());
 
-  // Base Health Check
+  // 4. Base Health Check
   app.get("/health", (_req: Request, res: Response) => {
     res.status(200).json({
       status: "UP",
@@ -16,7 +26,7 @@ export function createApp(): Express {
     });
   });
 
-  // API v1 Health Check
+  // 5. API v1 Health Check
   app.get("/api/v1/health", (_req: Request, res: Response) => {
     res.status(200).json({
       status: "UP",
@@ -26,5 +36,13 @@ export function createApp(): Express {
     });
   });
 
+  // 6. Unmatched Route Fallback (404 Not Found)
+  app.use(notFoundHandler);
+
+  // 7. Centralized RFC 7807 Error Handler (must be registered last)
+  app.use(errorHandler);
+
   return app;
 }
+
+export { logger };
