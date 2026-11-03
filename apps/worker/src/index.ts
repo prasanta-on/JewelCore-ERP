@@ -3,11 +3,32 @@
  * BullMQ background worker engine for asynchronous job processing.
  */
 
-// eslint-disable-next-line no-console
-console.log("[JewelCore Worker] Worker engine baseline initialized.");
+export * from "./config.js";
+export * from "./infrastructure/logger.js";
+export * from "./infrastructure/redis.js";
+export * from "./infrastructure/queueConfig.js";
+export * from "./infrastructure/workerFactory.js";
+export * from "./engine/eventProcessor.js";
+export * from "./lifecycle.js";
 
-process.on("SIGTERM", () => {
-  // eslint-disable-next-line no-console
-  console.log("[JewelCore Worker] SIGTERM received. Shutting down worker...");
-  process.exit(0);
-});
+import { workerLogger } from "./infrastructure/logger.js";
+import { WorkerLifecycleManager } from "./lifecycle.js";
+
+export function bootstrapWorker(): WorkerLifecycleManager {
+  workerLogger.info(
+    "JewelCore background worker engine initialized (PREP_READY).",
+  );
+
+  const lifecycle = new WorkerLifecycleManager();
+  lifecycle.setupSignalHandlers();
+
+  return lifecycle;
+}
+
+// If executed directly
+if (
+  process.env.NODE_ENV !== "test" &&
+  process.argv[1]?.endsWith("dist/index.js")
+) {
+  bootstrapWorker();
+}

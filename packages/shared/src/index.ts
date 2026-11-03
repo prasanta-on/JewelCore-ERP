@@ -120,3 +120,11 @@ export const MeasurementUnit = {
 
 export type MeasurementUnit =
   (typeof MeasurementUnit)[keyof typeof MeasurementUnit];
+
+/**
+ * Event Architecture & Transactional Outbox Exports (FEAT-FOUND-04)
+ */
+export * from "./events/errorContracts.js";
+export * from "./events/eventEnvelope.js";
+export * from "./events/outboxContracts.js";
+export * from "./events/idempotencyContracts.js";
