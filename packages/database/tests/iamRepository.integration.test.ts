@@ -19,12 +19,14 @@ describe("IAM Organizations & Stores Repository Integration Tests", () => {
   beforeAll(async () => {
     // Run schema migrations to ensure organizations and stores tables exist
     await runAllMigrations();
+    await query("DELETE FROM stores WHERE code LIKE 'TEST_STORE_%';");
+    await query("DELETE FROM organizations WHERE code LIKE 'TEST_ORG_%';");
   });
 
   afterAll(async () => {
     // Clean up test records
-    await query("DELETE FROM stores WHERE code LIKE 'TEST_%';");
-    await query("DELETE FROM organizations WHERE code LIKE 'TEST_%';");
+    await query("DELETE FROM stores WHERE code LIKE 'TEST_STORE_%';");
+    await query("DELETE FROM organizations WHERE code LIKE 'TEST_ORG_%';");
     await closePool();
   });
 

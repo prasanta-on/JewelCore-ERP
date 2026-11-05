@@ -6,6 +6,7 @@ import { errorHandler, notFoundHandler } from "./common/errorHandler.js";
 import { createAuthRouter } from "./modules/auth/authRoutes.js";
 import { createIamRouter } from "./modules/iam/iamRoutes.js";
 import { createStorageRouter } from "./modules/storage/storageRoutes.js";
+import { createTaxonomyRouter } from "./modules/taxonomy/taxonomyRoutes.js";
 
 export function createApp(configureRoutes?: (app: Express) => void): Express {
   const app = express();
@@ -47,6 +48,9 @@ export function createApp(configureRoutes?: (app: Express) => void): Express {
 
   // 8. Physical Storage & Vault Custody Module (FEAT-STOR-01)
   app.use("/api/v1/storage", createStorageRouter());
+
+  // 9. Master Data Taxonomy Module (FEAT-TAX-01)
+  app.use("/api/v1/taxonomy", createTaxonomyRouter());
 
   // Custom route injection (useful for test harnesses and integration mocks)
   if (configureRoutes) {

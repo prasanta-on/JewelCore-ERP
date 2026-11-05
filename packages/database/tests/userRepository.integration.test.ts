@@ -18,7 +18,7 @@ describe("IAM User Repository Integration Tests", () => {
   beforeAll(async () => {
     await runAllMigrations();
     const org = await createOrganization({
-      code: "TEST_USER_ORG",
+      code: "USER_REPO_ORG",
       name: "Test User Org Inc",
     });
     testOrgId = org.id;
@@ -26,7 +26,7 @@ describe("IAM User Repository Integration Tests", () => {
 
   afterAll(async () => {
     await query("DELETE FROM users WHERE email LIKE 'testuser%@jewelcore.local';");
-    await query("DELETE FROM organizations WHERE code = 'TEST_USER_ORG';");
+    await query("DELETE FROM organizations WHERE code = 'USER_REPO_ORG';");
     await closePool();
   });
 
