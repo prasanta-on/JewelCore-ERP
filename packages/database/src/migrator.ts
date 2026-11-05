@@ -5,8 +5,8 @@ import { withTransaction, type TransactionClient } from "./transaction.js";
 
 export interface MigrationDefinition {
   name: string;
-  up: (client: TransactionClient) => Promise<void> | string;
-  down?: (client: TransactionClient) => Promise<void> | string;
+  up: string | ((client: TransactionClient) => Promise<void> | string);
+  down?: string | ((client: TransactionClient) => Promise<void> | string);
 }
 
 export interface AppliedMigration {

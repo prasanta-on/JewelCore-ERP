@@ -9,3 +9,7 @@ export * from "./pool.js";
 export * from "./uuidv7.js";
 export * from "./transaction.js";
 export * from "./migrator.js";
+export * from "./migrations/index.js";
+export * from "./repositories/organizationRepository.js";
+export * from "./repositories/storeRepository.js";
+

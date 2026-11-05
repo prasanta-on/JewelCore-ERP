@@ -13,13 +13,18 @@ import {
 describe("PostgreSQL 18 Migration Runner Harness Integration Tests", () => {
   beforeAll(async () => {
     // Clean migration tracking table and test artifacts
-    await query(`DROP TABLE IF EXISTS ${MIGRATION_TABLE_NAME};`);
+    await ensureMigrationTable();
+    await query(
+      `DELETE FROM ${MIGRATION_TABLE_NAME} WHERE name LIKE '000%_create_test_%' OR name LIKE '000%_failing_%';`,
+    );
     await query("DROP TABLE IF EXISTS _test_migration_alpha;");
     await query("DROP TABLE IF EXISTS _test_migration_beta;");
   });
 
   afterAll(async () => {
-    await query(`DROP TABLE IF EXISTS ${MIGRATION_TABLE_NAME};`);
+    await query(
+      `DELETE FROM ${MIGRATION_TABLE_NAME} WHERE name LIKE '000%_create_test_%' OR name LIKE '000%_failing_%';`,
+    );
     await query("DROP TABLE IF EXISTS _test_migration_alpha;");
     await query("DROP TABLE IF EXISTS _test_migration_beta;");
     await closePool();
@@ -73,9 +78,14 @@ describe("PostgreSQL 18 Migration Runner Harness Integration Tests", () => {
 
     // Verify records in tracking table
     const applied = await getAppliedMigrations();
-    expect(applied.length).toBe(2);
-    expect(applied[0]?.name).toBe("0001_create_test_alpha");
-    expect(applied[1]?.name).toBe("0002_create_test_beta");
+    const testApplied = applied.filter(
+      (m) =>
+        m.name === "0001_create_test_alpha" ||
+        m.name === "0002_create_test_beta",
+    );
+    expect(testApplied.length).toBe(2);
+    expect(testApplied[0]?.name).toBe("0001_create_test_alpha");
+    expect(testApplied[1]?.name).toBe("0002_create_test_beta");
   });
 
   it("skips already applied migrations idempotently on subsequent runs", async () => {

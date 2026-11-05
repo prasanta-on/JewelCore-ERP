@@ -128,3 +128,9 @@ export * from "./events/errorContracts.js";
 export * from "./events/eventEnvelope.js";
 export * from "./events/outboxContracts.js";
 export * from "./events/idempotencyContracts.js";
+
+/**
+ * Identity & Access Management Domain Exports (FEAT-IAM-01)
+ */
+export * from "./iam/index.js";
+
