@@ -5,6 +5,7 @@ import { createHttpLogger, logger } from "./common/logger.js";
 import { errorHandler, notFoundHandler } from "./common/errorHandler.js";
 import { createAuthRouter } from "./modules/auth/authRoutes.js";
 import { createIamRouter } from "./modules/iam/iamRoutes.js";
+import { createStorageRouter } from "./modules/storage/storageRoutes.js";
 
 export function createApp(configureRoutes?: (app: Express) => void): Express {
   const app = express();
@@ -43,6 +44,9 @@ export function createApp(configureRoutes?: (app: Express) => void): Express {
 
   // 7. Identity & Access Management Module (Administrative & Governance)
   app.use("/api/v1/iam", createIamRouter());
+
+  // 8. Physical Storage & Vault Custody Module (FEAT-STOR-01)
+  app.use("/api/v1/storage", createStorageRouter());
 
   // Custom route injection (useful for test harnesses and integration mocks)
   if (configureRoutes) {

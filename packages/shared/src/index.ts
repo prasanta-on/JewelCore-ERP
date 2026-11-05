@@ -99,6 +99,13 @@ export class ConflictError extends DomainError {
   }
 }
 
+export class UnprocessableEntityError extends DomainError {
+  constructor(message: string, code: string = "ERR_UNPROCESSABLE_ENTITY", details?: unknown) {
+    super(message, code, 422, details);
+    this.name = "UnprocessableEntityError";
+  }
+}
+
 /**
  * Common Zod Schemas
  */
@@ -142,4 +149,5 @@ export * from "./events/idempotencyContracts.js";
  * Identity & Access Management Domain Exports (FEAT-IAM-01)
  */
 export * from "./iam/index.js";
+export * from "./storage/index.js";
 

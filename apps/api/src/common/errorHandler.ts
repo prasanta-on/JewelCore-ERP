@@ -13,6 +13,7 @@ import {
   ForbiddenError,
   NotFoundError,
   ConflictError,
+  UnprocessableEntityError,
 } from "@jewelcore/shared";
 import { logger } from "./logger.js";
 
@@ -50,6 +51,11 @@ function getProblemTypeAndTitle(
       return {
         type: `${ERROR_TYPE_BASE}/conflict`,
         title: "Conflict",
+      };
+    case 422:
+      return {
+        type: `${ERROR_TYPE_BASE}/unprocessable-entity`,
+        title: "Unprocessable Entity",
       };
     default:
       return {
@@ -146,6 +152,10 @@ export const errorHandler: ErrorRequestHandler = (
   } else if (err instanceof ConflictError) {
     status = 409;
     code = err.code || "ERR_CONFLICT";
+    detail = err.message;
+  } else if (err instanceof UnprocessableEntityError) {
+    status = 422;
+    code = err.code || "ERR_UNPROCESSABLE_ENTITY";
     detail = err.message;
   } else if (err instanceof DomainError) {
     status = err.status || 400;

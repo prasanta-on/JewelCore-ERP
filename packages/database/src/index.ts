@@ -16,6 +16,7 @@ export * from "./repositories/userRepository.js";
 export * from "./repositories/permissionRepository.js";
 export * from "./repositories/roleRepository.js";
 export * from "./repositories/membershipRepository.js";
+export * from "./repositories/storageRepository.js";
 
 
 
