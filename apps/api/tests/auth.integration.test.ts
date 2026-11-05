@@ -27,7 +27,7 @@ describe("IAM Authentication & User Endpoints (FEAT-IAM-02)", () => {
     await closePool();
   });
 
-  describe("POST /api/v1/iam/auth/register", () => {
+  describe("POST /api/v1/auth/register", () => {
     it("successfully registers a user with Argon2id hashed password and returns public profile", async () => {
       const payload = {
         organizationId: testOrgId,
@@ -39,7 +39,7 @@ describe("IAM Authentication & User Endpoints (FEAT-IAM-02)", () => {
       };
 
       const res = await request(app)
-        .post("/api/v1/iam/auth/register")
+        .post("/api/v1/auth/register")
         .send(payload);
 
       expect(res.status).toBe(201);
@@ -71,7 +71,7 @@ describe("IAM Authentication & User Endpoints (FEAT-IAM-02)", () => {
       };
 
       const res = await request(app)
-        .post("/api/v1/iam/auth/register")
+        .post("/api/v1/auth/register")
         .send(payload);
 
       expect(res.status).toBe(409);
@@ -88,7 +88,7 @@ describe("IAM Authentication & User Endpoints (FEAT-IAM-02)", () => {
       };
 
       const res = await request(app)
-        .post("/api/v1/iam/auth/register")
+        .post("/api/v1/auth/register")
         .send(payload);
 
       expect(res.status).toBe(400);
@@ -106,7 +106,7 @@ describe("IAM Authentication & User Endpoints (FEAT-IAM-02)", () => {
       };
 
       const res = await request(app)
-        .post("/api/v1/iam/auth/register")
+        .post("/api/v1/auth/register")
         .send(payload);
 
       expect(res.status).toBe(404);
@@ -114,12 +114,12 @@ describe("IAM Authentication & User Endpoints (FEAT-IAM-02)", () => {
     });
   });
 
-  describe("POST /api/v1/iam/auth/login", () => {
+  describe("POST /api/v1/auth/login", () => {
     let accessToken: string;
 
     it("authenticates valid credentials, sets HTTP-only refresh cookie and returns access JWT", async () => {
       const res = await request(app)
-        .post("/api/v1/iam/auth/login")
+        .post("/api/v1/auth/login")
         .send({
           email: "auth_user1@jewelcore.local",
           password: "SuperSecretPassword123",
@@ -142,7 +142,7 @@ describe("IAM Authentication & User Endpoints (FEAT-IAM-02)", () => {
 
     it("rejects invalid password credentials with 401 Unauthorized", async () => {
       const res = await request(app)
-        .post("/api/v1/iam/auth/login")
+        .post("/api/v1/auth/login")
         .send({
           email: "auth_user1@jewelcore.local",
           password: "WrongPassword999",
@@ -155,7 +155,7 @@ describe("IAM Authentication & User Endpoints (FEAT-IAM-02)", () => {
     it("triggers temporary account lockout after repeated brute-force failures", async () => {
       // Create user for lockout test
       await request(app)
-        .post("/api/v1/iam/auth/register")
+        .post("/api/v1/auth/register")
         .send({
           organizationId: testOrgId,
           email: "auth_lockout@jewelcore.local",
@@ -167,7 +167,7 @@ describe("IAM Authentication & User Endpoints (FEAT-IAM-02)", () => {
       // 4 failures: 401 Unauthorized
       for (let i = 0; i < 4; i++) {
         const failRes = await request(app)
-          .post("/api/v1/iam/auth/login")
+          .post("/api/v1/auth/login")
           .send({
             email: "auth_lockout@jewelcore.local",
             password: "InvalidPasswordAttempt",
@@ -177,7 +177,7 @@ describe("IAM Authentication & User Endpoints (FEAT-IAM-02)", () => {
 
       // 5th failure: triggers 403 Forbidden with ERR_ACCOUNT_LOCKED
       const lockRes = await request(app)
-        .post("/api/v1/iam/auth/login")
+        .post("/api/v1/auth/login")
         .send({
           email: "auth_lockout@jewelcore.local",
           password: "InvalidPasswordAttempt",
@@ -187,7 +187,7 @@ describe("IAM Authentication & User Endpoints (FEAT-IAM-02)", () => {
 
       // Subsequent attempt even with correct password is blocked until lock expires
       const blockedRes = await request(app)
-        .post("/api/v1/iam/auth/login")
+        .post("/api/v1/auth/login")
         .send({
           email: "auth_lockout@jewelcore.local",
           password: "TargetPassword123",
@@ -196,10 +196,10 @@ describe("IAM Authentication & User Endpoints (FEAT-IAM-02)", () => {
       expect(blockedRes.body.code).toBe("ERR_ACCOUNT_LOCKED");
     });
 
-    describe("GET /api/v1/iam/auth/me", () => {
+    describe("GET /api/v1/auth/me", () => {
       it("returns current user profile when valid Bearer JWT is provided", async () => {
         const res = await request(app)
-          .get("/api/v1/iam/auth/me")
+          .get("/api/v1/auth/me")
           .set("Authorization", `Bearer ${accessToken}`);
 
         expect(res.status).toBe(200);
@@ -208,7 +208,7 @@ describe("IAM Authentication & User Endpoints (FEAT-IAM-02)", () => {
       });
 
       it("returns 401 Unauthorized when Authorization header is missing", async () => {
-        const res = await request(app).get("/api/v1/iam/auth/me");
+        const res = await request(app).get("/api/v1/auth/me");
 
         expect(res.status).toBe(401);
         expect(res.body.code).toBe("ERR_UNAUTHORIZED");
@@ -216,3 +216,4 @@ describe("IAM Authentication & User Endpoints (FEAT-IAM-02)", () => {
     });
   });
 });
+

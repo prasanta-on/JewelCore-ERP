@@ -3,6 +3,7 @@ import cors from "cors";
 import { correlationIdMiddleware } from "./common/correlationId.js";
 import { createHttpLogger, logger } from "./common/logger.js";
 import { errorHandler, notFoundHandler } from "./common/errorHandler.js";
+import { createAuthRouter } from "./modules/auth/authRoutes.js";
 import { createIamRouter } from "./modules/iam/iamRoutes.js";
 
 export function createApp(): Express {
@@ -37,14 +38,18 @@ export function createApp(): Express {
     });
   });
 
-  // 6. Identity & Access Management Module (FEAT-IAM-01)
+  // 6. Authentication Module (Top-Level Public Security Context)
+  app.use("/api/v1/auth", createAuthRouter());
+
+  // 7. Identity & Access Management Module (Administrative & Governance)
   app.use("/api/v1/iam", createIamRouter());
 
-  // 7. Unmatched Route Fallback (404 Not Found)
+  // 8. Unmatched Route Fallback (404 Not Found)
   app.use(notFoundHandler);
 
-  // 8. Centralized RFC 7807 Error Handler (must be registered last)
+  // 9. Centralized RFC 7807 Error Handler (must be registered last)
   app.use(errorHandler);
+
 
 
   return app;

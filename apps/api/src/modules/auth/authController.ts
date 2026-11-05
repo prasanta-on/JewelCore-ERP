@@ -37,12 +37,12 @@ export async function loginHandler(
     const validated = loginSchema.parse(req.body);
     const { accessToken, refreshToken, user } = await loginService(validated);
 
-    // Set secure HTTP-only refresh cookie
+    // Set secure HTTP-only refresh cookie scoped to /api/v1/auth
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      path: "/api/v1/iam/auth",
+      path: "/api/v1/auth",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
