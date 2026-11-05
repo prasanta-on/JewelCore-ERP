@@ -136,3 +136,56 @@ export interface AuthTokens {
   user: UserPublic;
 }
 
+/**
+ * RBAC Role Scope Levels
+ */
+export const RoleScopeLevel = {
+  ORGANIZATION: "ORGANIZATION",
+  STORE: "STORE",
+} as const;
+
+export type RoleScopeLevel = (typeof RoleScopeLevel)[keyof typeof RoleScopeLevel];
+
+export interface Permission {
+  id: string;
+  code: string;
+  module: string;
+  description: string;
+  createdAt: Date;
+}
+
+export interface Role {
+  id: string;
+  organizationId: string | null;
+  code: string;
+  name: string;
+  scopeLevel: RoleScopeLevel;
+  isSystem: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface RoleWithPermissions extends Role {
+  permissions: Permission[];
+}
+
+export const createRoleSchema = z.object({
+  organizationId: z.string().uuid("Organization ID must be a valid UUID").optional().nullable(),
+  code: z
+    .string()
+    .trim()
+    .min(1, "Role code is required")
+    .max(50, "Role code must not exceed 50 characters")
+    .regex(/^[A-Z0-9_-]+$/i, "Role code must be alphanumeric"),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Role name is required")
+    .max(100, "Role name must not exceed 100 characters"),
+  scopeLevel: z.nativeEnum(RoleScopeLevel).default(RoleScopeLevel.STORE),
+  permissionCodes: z.array(z.string()).default([]),
+});
+
+export type CreateRoleInput = z.infer<typeof createRoleSchema>;
+
+

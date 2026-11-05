@@ -6,7 +6,7 @@ import { errorHandler, notFoundHandler } from "./common/errorHandler.js";
 import { createAuthRouter } from "./modules/auth/authRoutes.js";
 import { createIamRouter } from "./modules/iam/iamRoutes.js";
 
-export function createApp(): Express {
+export function createApp(configureRoutes?: (app: Express) => void): Express {
   const app = express();
 
   // 1. Correlation ID Middleware (must execute first to tag every request)
@@ -44,13 +44,16 @@ export function createApp(): Express {
   // 7. Identity & Access Management Module (Administrative & Governance)
   app.use("/api/v1/iam", createIamRouter());
 
+  // Custom route injection (useful for test harnesses and integration mocks)
+  if (configureRoutes) {
+    configureRoutes(app);
+  }
+
   // 8. Unmatched Route Fallback (404 Not Found)
   app.use(notFoundHandler);
 
   // 9. Centralized RFC 7807 Error Handler (must be registered last)
   app.use(errorHandler);
-
-
 
   return app;
 }

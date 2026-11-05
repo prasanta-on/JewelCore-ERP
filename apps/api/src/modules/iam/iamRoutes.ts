@@ -7,6 +7,13 @@ import {
   getStoreHandler,
   listStoresHandler,
 } from "./iamController.js";
+import {
+  listPermissionsHandler,
+  createRoleHandler,
+  listRolesHandler,
+  getRoleHandler,
+  assignUserRoleHandler,
+} from "./rbacController.js";
 
 export function createIamRouter(): Router {
   const router = Router();
@@ -21,5 +28,13 @@ export function createIamRouter(): Router {
   router.get("/stores", listStoresHandler);
   router.get("/stores/:id", getStoreHandler);
 
+  // RBAC Roles & Permissions endpoints (FEAT-IAM-03)
+  router.get("/permissions", listPermissionsHandler);
+  router.post("/roles", createRoleHandler);
+  router.get("/roles", listRolesHandler);
+  router.get("/roles/:id", getRoleHandler);
+  router.post("/users/:id/roles", assignUserRoleHandler);
+
   return router;
 }
+

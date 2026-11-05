@@ -13,5 +13,8 @@ export * from "./migrations/index.js";
 export * from "./repositories/organizationRepository.js";
 export * from "./repositories/storeRepository.js";
 export * from "./repositories/userRepository.js";
+export * from "./repositories/permissionRepository.js";
+export * from "./repositories/roleRepository.js";
+
 
 
