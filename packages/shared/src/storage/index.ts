@@ -58,6 +58,30 @@ export interface VaultHierarchy extends Vault {
   lockers: LockerHierarchy[];
 }
 
+export const CompartmentOccupancyStatus = {
+  AVAILABLE: "AVAILABLE",
+  NEAR_CAPACITY: "NEAR_CAPACITY",
+  FULL: "FULL",
+  UNLIMITED: "UNLIMITED",
+} as const;
+
+export type CompartmentOccupancyStatus =
+  (typeof CompartmentOccupancyStatus)[keyof typeof CompartmentOccupancyStatus];
+
+export interface CompartmentWithOccupancy extends Compartment {
+  occupiedItemCount: number;
+  occupancyPercentage: number | null;
+  status: CompartmentOccupancyStatus;
+}
+
+export interface LockerHierarchyWithOccupancy extends Locker {
+  compartments: CompartmentWithOccupancy[];
+}
+
+export interface VaultHierarchyWithOccupancy extends Vault {
+  lockers: LockerHierarchyWithOccupancy[];
+}
+
 export const createVaultSchema = z.object({
   storeId: z.string().uuid("Store ID must be a valid UUID"),
   code: z

@@ -4,8 +4,10 @@ import {
   type Locker,
   type Compartment,
   type VaultType,
-  type VaultHierarchy,
-  type LockerHierarchy,
+  type VaultHierarchyWithOccupancy,
+  type LockerHierarchyWithOccupancy,
+  type CompartmentWithOccupancy,
+  type CompartmentOccupancyStatus,
   UnprocessableEntityError,
 } from "@jewelcore/shared";
 import { getPool } from "../pool.js";
@@ -486,29 +488,88 @@ export async function listCompartmentsByStore(
 }
 
 /**
- * Retrieves the complete 3-Tier Storage Hierarchy tree for a store branch.
- * Vault -> Lockers -> Compartments (INV-05, INV-17)
+ * Computes live occupancy metrics and status chips for a compartment.
+ */
+export function computeCompartmentOccupancy(
+  comp: Compartment,
+  itemCount: number = 0,
+): CompartmentWithOccupancy {
+  const max = comp.maxItemCapacity;
+  let occupancyPercentage: number | null = null;
+  let status: CompartmentOccupancyStatus = "AVAILABLE";
+
+  if (max !== null && max > 0) {
+    occupancyPercentage = Math.min(100, Math.round((itemCount / max) * 100));
+    if (occupancyPercentage >= 100) {
+      status = "FULL";
+    } else if (occupancyPercentage >= 80) {
+      status = "NEAR_CAPACITY";
+    } else {
+      status = "AVAILABLE";
+    }
+  } else {
+    status = "UNLIMITED";
+  }
+
+  return {
+    ...comp,
+    occupiedItemCount: itemCount,
+    occupancyPercentage,
+    status,
+  };
+}
+
+/**
+ * Retrieves the complete 3-Tier Storage Hierarchy tree for a store branch
+ * with real-time compartment occupancy metrics (INV-05, INV-17).
+ * Vault -> Lockers -> Compartments
  */
 export async function getStorageHierarchy(
   storeId: string,
   clientOverride?: Queryable,
-): Promise<VaultHierarchy[]> {
+  occupancyMap?: Map<string, number>,
+): Promise<VaultHierarchyWithOccupancy[]> {
   const vaults = await listVaultsByStore(storeId, clientOverride);
   const lockers = await listLockersByStore(storeId, clientOverride);
   const compartments = await listCompartmentsByStore(storeId, clientOverride);
 
-  // Map compartments into locker ID buckets
-  const compartmentsByLocker = new Map<string, Compartment[]>();
+  // If no occupancyMap provided, query active pieces if inventory_items exists, or default to 0
+  let counts = occupancyMap;
+  if (!counts) {
+    counts = new Map<string, number>();
+    const executor = clientOverride ?? getPool();
+    try {
+      const invCheck = await executor.query<{ current_compartment_id: string; item_count: string }>(
+        `
+        SELECT current_compartment_id, COUNT(*)::text as item_count
+        FROM inventory_items
+        WHERE store_id = $1 AND current_compartment_id IS NOT NULL AND status != 'RETIRED'
+        GROUP BY current_compartment_id;
+        `,
+        [storeId],
+      );
+      for (const row of invCheck.rows) {
+        counts.set(row.current_compartment_id, Number(row.item_count));
+      }
+    } catch {
+      // inventory_items table not created yet (Phase 0 Sprint 5)
+    }
+  }
+
+  // Map compartments into locker ID buckets with calculated occupancy
+  const compartmentsByLocker = new Map<string, CompartmentWithOccupancy[]>();
   for (const comp of compartments) {
+    const itemCount = counts.get(comp.id) ?? 0;
+    const compWithOcc = computeCompartmentOccupancy(comp, itemCount);
     const list = compartmentsByLocker.get(comp.lockerId) ?? [];
-    list.push(comp);
+    list.push(compWithOcc);
     compartmentsByLocker.set(comp.lockerId, list);
   }
 
   // Map lockers into vault ID buckets with their nested compartments
-  const lockersByVault = new Map<string, LockerHierarchy[]>();
+  const lockersByVault = new Map<string, LockerHierarchyWithOccupancy[]>();
   for (const locker of lockers) {
-    const lockerHierarchy: LockerHierarchy = {
+    const lockerHierarchy: LockerHierarchyWithOccupancy = {
       ...locker,
       compartments: compartmentsByLocker.get(locker.id) ?? [],
     };

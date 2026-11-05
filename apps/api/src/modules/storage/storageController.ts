@@ -205,7 +205,20 @@ export async function getHierarchyHandler(
       throw new BadRequestError("Store context is required", "ERR_MISSING_STORE_CONTEXT");
     }
 
-    const hierarchy = await getStorageHierarchy(storeId);
+    // Support simulated occupancy query for directory visualizer testing
+    let occupancyMap: Map<string, number> | undefined;
+    if (req.query.simulateOccupancy && typeof req.query.simulateOccupancy === "string") {
+      try {
+        const parsed = JSON.parse(req.query.simulateOccupancy);
+        if (typeof parsed === "object" && parsed !== null) {
+          occupancyMap = new Map(Object.entries(parsed).map(([k, v]) => [k, Number(v)]));
+        }
+      } catch {
+        // ignore invalid JSON format in query parameter
+      }
+    }
+
+    const hierarchy = await getStorageHierarchy(storeId, undefined, occupancyMap);
     res.status(200).json({
       data: hierarchy,
       timestamp: new Date().toISOString(),

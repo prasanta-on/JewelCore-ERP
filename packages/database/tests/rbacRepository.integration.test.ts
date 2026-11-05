@@ -23,7 +23,7 @@ describe("IAM RBAC Roles & Permissions Repository Integration Tests", () => {
   beforeAll(async () => {
     await runAllMigrations();
     const org = await createOrganization({
-      code: "TEST_RBAC_ORG",
+      code: "RBAC_REPO_ORG",
       name: "RBAC Testing Org",
     });
     testOrgId = org.id;
