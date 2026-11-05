@@ -58,8 +58,9 @@ export class ValidationError extends DomainError {
 export class UnauthorizedError extends DomainError {
   constructor(
     message: string = "Authentication credentials missing or invalid",
+    code: string = "ERR_UNAUTHORIZED",
   ) {
-    super(message, "ERR_UNAUTHORIZED", 401);
+    super(message, code, 401);
     this.name = "UnauthorizedError";
   }
 }
@@ -67,8 +68,9 @@ export class UnauthorizedError extends DomainError {
 export class ForbiddenError extends DomainError {
   constructor(
     message: string = "Insufficient permissions or store context violation",
+    code: string = "ERR_FORBIDDEN",
   ) {
-    super(message, "ERR_FORBIDDEN", 403);
+    super(message, code, 403);
     this.name = "ForbiddenError";
   }
 }

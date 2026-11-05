@@ -88,3 +88,51 @@ export const createStoreSchema = z.object({
 });
 
 export type CreateStoreInput = z.infer<typeof createStoreSchema>;
+
+export interface User {
+  id: string;
+  organizationId: string;
+  email: string;
+  passwordHash: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  isActive: boolean;
+  lastLoginAt: Date | null;
+  failedLoginAttempts: number;
+  lockedUntil: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type UserPublic = Omit<User, "passwordHash">;
+
+export const registerUserSchema = z.object({
+  organizationId: z.string().uuid("Organization ID must be a valid UUID"),
+  email: z.string().trim().toLowerCase().email("Must be a valid email address"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+  firstName: z.string().trim().min(1, "First name is required").max(100),
+  lastName: z.string().trim().min(1, "Last name is required").max(100),
+  phone: z.string().trim().max(50).optional().nullable(),
+});
+
+export type RegisterUserInput = z.infer<typeof registerUserSchema>;
+
+export const loginSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Must be a valid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+export type LoginInput = z.infer<typeof loginSchema>;
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  user: UserPublic;
+}
+

@@ -12,4 +12,6 @@ export * from "./migrator.js";
 export * from "./migrations/index.js";
 export * from "./repositories/organizationRepository.js";
 export * from "./repositories/storeRepository.js";
+export * from "./repositories/userRepository.js";
+
 
