@@ -14,6 +14,12 @@ import {
   getRoleHandler,
   assignUserRoleHandler,
 } from "./rbacController.js";
+import {
+  createOrgMembershipHandler,
+  createStoreMembershipHandler,
+  assignMembershipRoleHandler,
+  getUserStoresHandler,
+} from "./membershipController.js";
 
 export function createIamRouter(): Router {
   const router = Router();
@@ -34,6 +40,12 @@ export function createIamRouter(): Router {
   router.get("/roles", listRolesHandler);
   router.get("/roles/:id", getRoleHandler);
   router.post("/users/:id/roles", assignUserRoleHandler);
+
+  // Memberships & Context endpoints (FEAT-IAM-04)
+  router.post("/memberships/organizations", createOrgMembershipHandler);
+  router.post("/memberships/stores", createStoreMembershipHandler);
+  router.post("/memberships/store-roles", assignMembershipRoleHandler);
+  router.get("/users/:userId/stores", getUserStoresHandler);
 
   return router;
 }

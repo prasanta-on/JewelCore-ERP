@@ -55,6 +55,13 @@ export class ValidationError extends DomainError {
   }
 }
 
+export class BadRequestError extends DomainError {
+  constructor(message: string, code: string = "ERR_BAD_REQUEST", details?: unknown) {
+    super(message, code, 400, details);
+    this.name = "BadRequestError";
+  }
+}
+
 export class UnauthorizedError extends DomainError {
   constructor(
     message: string = "Authentication credentials missing or invalid",

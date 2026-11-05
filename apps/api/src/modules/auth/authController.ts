@@ -10,6 +10,7 @@ import {
   getCurrentUserService,
 } from "./authService.js";
 import { verifyJwt } from "./authUtils.js";
+import { getUserAccessibleStores } from "@jewelcore/database";
 
 export async function registerHandler(
   req: Request,
@@ -75,6 +76,30 @@ export async function meHandler(
     const user = await getCurrentUserService(claims.userId);
     res.status(200).json({
       data: user,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function myStoresHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      throw new UnauthorizedError("Authorization header with Bearer token is required");
+    }
+
+    const token = authHeader.substring(7);
+    const claims = await verifyJwt(token);
+
+    const stores = await getUserAccessibleStores(claims.userId);
+    res.status(200).json({
+      data: stores,
       timestamp: new Date().toISOString(),
     });
   } catch (err) {

@@ -188,4 +188,74 @@ export const createRoleSchema = z.object({
 
 export type CreateRoleInput = z.infer<typeof createRoleSchema>;
 
+export interface OrganizationMembership {
+  id: string;
+  organizationId: string;
+  userId: string;
+  isActive: boolean;
+  joinedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface StoreMembership {
+  id: string;
+  organizationMembershipId: string;
+  storeId: string;
+  isDefault: boolean;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface MembershipRole {
+  id: string;
+  storeMembershipId: string;
+  roleId: string;
+  assignedByUserId: string | null;
+  assignedAt: Date;
+  createdAt: Date;
+}
+
+export interface UserStoreAccess {
+  storeId: string;
+  storeCode: string;
+  storeName: string;
+  storeType: StoreType;
+  organizationId: string;
+  organizationMembershipId: string;
+  storeMembershipId: string;
+  isDefault: boolean;
+  isActive: boolean;
+}
+
+export interface StoreContext {
+  storeId: string;
+  organizationId: string;
+  organizationMembershipId: string;
+  storeMembershipId: string;
+  isDefault: boolean;
+}
+
+export const createOrganizationMembershipSchema = z.object({
+  organizationId: z.string().uuid("Organization ID must be a valid UUID"),
+  userId: z.string().uuid("User ID must be a valid UUID"),
+  isActive: z.boolean().default(true),
+});
+export type CreateOrganizationMembershipInput = z.infer<typeof createOrganizationMembershipSchema>;
+
+export const createStoreMembershipSchema = z.object({
+  organizationMembershipId: z.string().uuid("Organization Membership ID must be a valid UUID"),
+  storeId: z.string().uuid("Store ID must be a valid UUID"),
+  isDefault: z.boolean().default(false),
+  isActive: z.boolean().default(true),
+});
+export type CreateStoreMembershipInput = z.infer<typeof createStoreMembershipSchema>;
+
+export const assignMembershipRoleSchema = z.object({
+  storeMembershipId: z.string().uuid("Store Membership ID must be a valid UUID"),
+  roleId: z.string().uuid("Role ID must be a valid UUID"),
+});
+export type AssignMembershipRoleInput = z.infer<typeof assignMembershipRoleSchema>;
+
 

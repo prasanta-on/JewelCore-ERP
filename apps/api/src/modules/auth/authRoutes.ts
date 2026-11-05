@@ -3,6 +3,7 @@ import {
   registerHandler,
   loginHandler,
   meHandler,
+  myStoresHandler,
 } from "./authController.js";
 
 export function createAuthRouter(): Router {
@@ -11,6 +12,7 @@ export function createAuthRouter(): Router {
   router.post("/register", registerHandler);
   router.post("/login", loginHandler);
   router.get("/me", meHandler);
+  router.get("/me/stores", myStoresHandler);
 
   return router;
 }
