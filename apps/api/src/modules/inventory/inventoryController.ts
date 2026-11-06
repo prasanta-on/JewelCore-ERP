@@ -5,6 +5,8 @@ import {
   createStockBalanceSchema,
   updateStockBalanceSchema,
   listStockBalancesQuerySchema,
+  createInventoryMovementSchema,
+  listInventoryMovementsQuerySchema,
   BadRequestError,
   NotFoundError,
   ForbiddenError,
@@ -19,6 +21,9 @@ import {
   getStockBalanceById,
   updateStockBalance,
   listStockBalances,
+  createInventoryMovement,
+  getInventoryMovementById,
+  listInventoryMovements,
 } from "@jewelcore/database";
 
 /**
@@ -296,6 +301,115 @@ export async function listStockBalancesHandler(
 
     const balances = await listStockBalances(query);
     res.status(200).json(balances);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Records an immutable physical inventory custody movement (Entity 30 - FEAT-INV-03).
+ */
+export async function createInventoryMovementHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const input = createInventoryMovementSchema.parse(req.body);
+
+    const activeStoreId =
+      req.storeContext?.storeId ??
+      (typeof req.headers["x-store-id"] === "string"
+        ? req.headers["x-store-id"]
+        : undefined);
+
+    if (activeStoreId && input.storeId && activeStoreId !== input.storeId) {
+      throw new ForbiddenError(
+        `Cross-store access denied: payload store '${input.storeId}' does not match active store context '${activeStoreId}'`,
+        "ERR_STORE_ACCESS_DENIED",
+      );
+    }
+
+    const movement = await createInventoryMovement(
+      {
+        ...input,
+        storeId: input.storeId ?? activeStoreId,
+      },
+      {
+        userId: req.user!.userId,
+      },
+    );
+
+    res.status(201).json(movement);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Retrieves an immutable inventory movement record by ID.
+ */
+export async function getInventoryMovementHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) {
+      throw new BadRequestError("Inventory movement ID parameter is required");
+    }
+
+    const movement = await getInventoryMovementById(id);
+    if (!movement) {
+      throw new NotFoundError(
+        `Inventory movement with ID '${id}' not found`,
+        "ERR_INVENTORY_MOVEMENT_NOT_FOUND",
+      );
+    }
+
+    const activeStoreId =
+      req.storeContext?.storeId ??
+      (typeof req.headers["x-store-id"] === "string"
+        ? req.headers["x-store-id"]
+        : undefined);
+
+    if (activeStoreId && activeStoreId !== movement.storeId) {
+      throw new ForbiddenError(
+        "Access to the requested store context is denied",
+        "ERR_STORE_ACCESS_DENIED",
+      );
+    }
+
+    res.status(200).json(movement);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Lists immutable inventory movements with query filtering and pagination.
+ */
+export async function listInventoryMovementsHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const query = listInventoryMovementsQuerySchema.parse(req.query);
+
+    const activeStoreId =
+      req.storeContext?.storeId ??
+      (typeof req.headers["x-store-id"] === "string"
+        ? req.headers["x-store-id"]
+        : undefined);
+
+    if (activeStoreId && !query.storeId) {
+      query.storeId = activeStoreId;
+    }
+
+    const movements = await listInventoryMovements(query);
+    res.status(200).json(movements);
   } catch (err) {
     next(err);
   }

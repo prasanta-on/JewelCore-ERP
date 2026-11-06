@@ -22,6 +22,7 @@ import { migration00019CreateQcTolerancePermissions } from "./00019_create_qc_to
 import { migration00020CreateQcDecisions } from "./00020_create_qc_decisions.js";
 import { migration00021CreateInventoryItems } from "./00021_create_inventory_items.js";
 import { migration00022CreateInventoryStockBalances } from "./00022_create_inventory_stock_balances.js";
+import { migration00023CreateInventoryMovements } from "./00023_create_inventory_movements.js";
 
 export const allMigrations: MigrationDefinition[] = [
   migration00001CreateIamOrganizationsAndStores,
@@ -46,6 +47,7 @@ export const allMigrations: MigrationDefinition[] = [
   migration00020CreateQcDecisions,
   migration00021CreateInventoryItems,
   migration00022CreateInventoryStockBalances,
+  migration00023CreateInventoryMovements,
 ];
 
 /**
@@ -77,3 +79,4 @@ export * from "./00019_create_qc_tolerance_permissions.js";
 export * from "./00020_create_qc_decisions.js";
 export * from "./00021_create_inventory_items.js";
 export * from "./00022_create_inventory_stock_balances.js";
+export * from "./00023_create_inventory_movements.js";

@@ -122,17 +122,19 @@ export async function upsertStockBalance(
       );
     }
 
+    const qtyReserved = input.quantityReserved ?? 0;
+
     // 3. Validate Non-Negative Quantities
-    if (input.quantityOnHand < 0 || input.quantityReserved < 0) {
+    if (input.quantityOnHand < 0 || qtyReserved < 0) {
       throw new BadRequestError(
         "Quantity on hand and quantity reserved must be non-negative",
         "ERR_NEGATIVE_STOCK_BALANCE",
       );
     }
 
-    if (input.quantityOnHand < input.quantityReserved) {
+    if (input.quantityOnHand < qtyReserved) {
       throw new UnprocessableEntityError(
-        `Quantity on hand (${input.quantityOnHand}) cannot be less than quantity reserved (${input.quantityReserved})`,
+        `Quantity on hand (${input.quantityOnHand}) cannot be less than quantity reserved (${qtyReserved})`,
         "ERR_INSUFFICIENT_AVAILABLE_STOCK",
       );
     }
@@ -177,7 +179,7 @@ export async function upsertStockBalance(
         input.productSkuId,
         input.compartmentId,
         input.quantityOnHand,
-        input.quantityReserved,
+        qtyReserved,
         input.totalWeightGrams ?? 0,
         input.averageCostUnitCad ?? null,
       ],

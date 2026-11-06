@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Unified Custody Movement Ledger (`FEAT-INV-03` / `INV-09`, `INV-13`, `INV-16`, Entity 30)**:
+  - Created `inventory_movements` table (Entity 30) establishing an immutable audit ledger of every internal physical custody transfer across the store storage hierarchy.
+  - Supported comprehensive `MovementType` operations: `INTAKE_PLACEMENT`, `VAULT_TRANSFER`, `DISPLAY_PLACEMENT`, `RETURN_TO_VAULT`, `AUDIT_ADJUSTMENT`, and `CUSTODY_DEPARTURE`.
+  - Enforced `INV-09` append-only audit immutability via database trigger `trg_inventory_movements_immutability`, strictly prohibiting `UPDATE` and `DELETE` operations with SQLSTATE `23514`.
+  - Enforced `INV-13` destination compartment consistency:
+    - Mandatory compartment (`to_compartment_id IS NOT NULL`) when transferring to compartment custody states (`IN_VAULT`, `IN_DISPLAY`).
+    - Mandatory null compartment (`to_compartment_id IS NULL`) when departing or staged in non-compartment states (`INTAKE_STAGING`, `IN_TRANSIT`, `MISSING`, `RELEASED`).
+  - Enforced `INV-16` movement SKU and item coherence via database trigger `trg_inventory_movements_sku_coherence` and service validation (`ERR_MOVEMENT_SKU_MISMATCH`, 422).
+  - Enforced strict serialized movement constraint: movements referencing `inventory_item_id` strictly require `quantity = 1` (`chk_movements_serialized_qty`).
+  - Atomic piece updates: atomically updates `inventory_items` piece's `current_compartment_id`, `custody_state`, and increments OCC `version` under an exclusive root lock (`FOR UPDATE`).
+  - Atomic bulk balance adjustments: atomically decrements source balance and increments/upserts destination balance for non-serialized batch components with insufficient balance guard (`ERR_INSUFFICIENT_STOCK_BALANCE`, 422).
+  - Enforced store boundary and multi-store isolation (`INV-11`): cross-store compartment rejection (`ERR_COMPARTMENT_STORE_MISMATCH`, 422) and store-context scoping (`ERR_STORE_ACCESS_DENIED`, 403).
+  - Wired permission `inventory:transfer` to movement execution and `inventory:view` to ledger lookup and filtered listing.
+  - Implemented REST API endpoints:
+    - `POST /api/v1/inventory/movements` (`inventory:transfer`)
+    - `GET /api/v1/inventory/movements/:id` (`inventory:view`)
+    - `GET /api/v1/inventory/movements` (`inventory:view`)
+  - Integrated OpenAPI 3.1 documentation for movement schemas and endpoints.
+  - Added comprehensive repository and API integration tests (25 test cases passing).
+
 - **Bulk Quantity-Batch Stock Balances (`FEAT-INV-02` / `BIZ-Q02`, Entity 29)**:
   - Created `inventory_stock_balances` table (Entity 29) to manage non-serialized components (earring backs, findings, loose pearls, packaging) per `(store_id, product_sku_id, compartment_id)`.
   - Enforced `INV-06` tracking type gate restricting stock balances strictly to `QUANTITY_BATCH` SKUs (`ERR_INVALID_TRACKING_TYPE`, 422).

@@ -47,6 +47,7 @@ import {
   birthInventoryItemSchema,
   createStockBalanceSchema,
   updateStockBalanceSchema,
+  createInventoryMovementSchema,
 } from "@jewelcore/shared";
 
 extendZodWithOpenApi(z);
@@ -2792,6 +2793,177 @@ registry.registerPath({
     },
     422: {
       description: "Insufficient available stock (onHand < reserved)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/inventory/movements",
+  summary: "Record Inventory Movement (FEAT-INV-03)",
+  description:
+    "Records an immutable physical custody movement for serialized jewellery items or quantity-batch stock balances. Enforces audit immutability (INV-09), compartment consistency (INV-13), SKU coherence (INV-16), and multi-store isolation (INV-11).",
+  tags: ["Inventory"],
+  security: [{ BearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: createInventoryMovementSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Inventory movement recorded successfully",
+    },
+    400: {
+      description: "Malformed payload or invalid parameters",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description:
+        "Insufficient permissions (requires inventory:transfer) or cross-store access violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    404: {
+      description: "Referenced item, SKU, or compartment not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description:
+        "Validation error: SKU mismatch (INV-16), compartment store mismatch (INV-11), or insufficient stock balance",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/inventory/movements",
+  summary: "List Inventory Movements (FEAT-INV-03)",
+  description:
+    "Lists immutable custody movement history matching store, SKU, item, and custody state filters.",
+  tags: ["Inventory"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "storeId",
+      in: "query",
+      required: false,
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "inventoryItemId",
+      in: "query",
+      required: false,
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "productSkuId",
+      in: "query",
+      required: false,
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "movementType",
+      in: "query",
+      required: false,
+      schema: {
+        type: "string",
+        enum: [
+          "INTAKE_PLACEMENT",
+          "VAULT_TRANSFER",
+          "DISPLAY_PLACEMENT",
+          "RETURN_TO_VAULT",
+          "AUDIT_ADJUSTMENT",
+          "CUSTODY_DEPARTURE",
+        ],
+      },
+    },
+    {
+      name: "toCustodyState",
+      in: "query",
+      required: false,
+      schema: {
+        type: "string",
+        enum: [
+          "INTAKE_STAGING",
+          "IN_VAULT",
+          "IN_DISPLAY",
+          "IN_TRANSIT",
+          "MISSING",
+          "RELEASED",
+        ],
+      },
+    },
+    {
+      name: "limit",
+      in: "query",
+      required: false,
+      schema: { type: "integer", minimum: 1, maximum: 100, default: 50 },
+    },
+    {
+      name: "offset",
+      in: "query",
+      required: false,
+      schema: { type: "integer", minimum: 0, default: 0 },
+    },
+  ],
+  responses: {
+    200: {
+      description: "List of inventory movement records",
+    },
+    403: {
+      description:
+        "Insufficient permissions (requires inventory:view) or store context violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/inventory/movements/{id}",
+  summary: "Get Inventory Movement by ID (FEAT-INV-03)",
+  description:
+    "Retrieves full details of an immutable physical custody movement record.",
+  tags: ["Inventory"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: {
+      description: "Inventory movement details",
+    },
+    403: {
+      description: "Insufficient permissions or store context violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    404: {
+      description: "Inventory movement not found",
       content: {
         "application/problem+json": { schema: ProblemDocumentSchema },
       },

@@ -12,6 +12,9 @@ import {
   getStockBalanceHandler,
   updateStockBalanceHandler,
   listStockBalancesHandler,
+  createInventoryMovementHandler,
+  getInventoryMovementHandler,
+  listInventoryMovementsHandler,
 } from "./inventoryController.js";
 
 export function createInventoryRouter(): Router {
@@ -60,6 +63,23 @@ export function createInventoryRouter(): Router {
     "/balances/:id",
     requirePermission("inventory:write"),
     updateStockBalanceHandler,
+  );
+
+  // Unified Custody Movement Ledger (Entity 30 - FEAT-INV-03 / INV-09, INV-13, INV-16)
+  router.post(
+    "/movements",
+    requirePermission("inventory:transfer"),
+    createInventoryMovementHandler,
+  );
+  router.get(
+    "/movements",
+    requirePermission("inventory:view"),
+    listInventoryMovementsHandler,
+  );
+  router.get(
+    "/movements/:id",
+    requirePermission("inventory:view"),
+    getInventoryMovementHandler,
   );
 
   return router;
