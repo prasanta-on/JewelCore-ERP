@@ -37,7 +37,10 @@ export const createMaterialSchema = z.object({
     .trim()
     .min(1, "Material code is required")
     .max(32, "Material code must not exceed 32 characters")
-    .regex(/^[A-Z0-9_-]+$/i, "Material code must contain only letters, numbers, hyphens, and underscores"),
+    .regex(
+      /^[A-Z0-9_-]+$/i,
+      "Material code must contain only letters, numbers, hyphens, and underscores",
+    ),
   name: z
     .string()
     .trim()
@@ -62,7 +65,10 @@ export const createPuritySchema = z
       .trim()
       .min(1, "Purity code is required")
       .max(32, "Purity code must not exceed 32 characters")
-      .regex(/^[A-Z0-9_-]+$/i, "Purity code must contain only letters, numbers, hyphens, and underscores"),
+      .regex(
+        /^[A-Z0-9_-]+$/i,
+        "Purity code must contain only letters, numbers, hyphens, and underscores",
+      ),
     name: z
       .string()
       .trim()
@@ -85,7 +91,8 @@ export const createPuritySchema = z
     const calculatedRatio = Number((data.purityPercentage / 100).toFixed(4));
     return {
       ...data,
-      purityRatio: data.purityRatio !== undefined ? data.purityRatio : calculatedRatio,
+      purityRatio:
+        data.purityRatio !== undefined ? data.purityRatio : calculatedRatio,
     };
   });
 

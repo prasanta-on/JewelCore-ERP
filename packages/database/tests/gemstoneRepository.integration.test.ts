@@ -33,7 +33,10 @@ describe("Gemstones Repository Integration Tests (FEAT-TAX-03)", () => {
   });
 
   afterAll(async () => {
-    await query("DELETE FROM gemstones WHERE organization_id IN ($1, $2);", [testOrg1Id, testOrg2Id]);
+    await query("DELETE FROM gemstones WHERE organization_id IN ($1, $2);", [
+      testOrg1Id,
+      testOrg2Id,
+    ]);
     await query("DELETE FROM organizations WHERE code LIKE 'GEM_TEST_%';");
     await closePool();
   });
@@ -128,7 +131,9 @@ describe("Gemstones Repository Integration Tests (FEAT-TAX-03)", () => {
       gemstoneType: "PRECIOUS",
     });
     expect(preciousStones.length).toBeGreaterThanOrEqual(1);
-    expect(preciousStones.every((s) => s.gemstoneType === "PRECIOUS")).toBe(true);
+    expect(preciousStones.every((s) => s.gemstoneType === "PRECIOUS")).toBe(
+      true,
+    );
 
     // Filter by ORGANIC_PEARL
     const pearls = await listGemstones({

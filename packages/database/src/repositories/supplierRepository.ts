@@ -1,9 +1,5 @@
 import type { Pool, PoolClient } from "pg";
-import {
-  type Supplier,
-  ConflictError,
-  NotFoundError,
-} from "@jewelcore/shared";
+import { type Supplier, ConflictError, NotFoundError } from "@jewelcore/shared";
 import { getPool } from "../pool.js";
 import { uuidv7 } from "../uuidv7.js";
 

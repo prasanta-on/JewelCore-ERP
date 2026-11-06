@@ -58,7 +58,9 @@ describe("IAM Authentication & User Endpoints (FEAT-IAM-02)", () => {
         "SELECT password_hash FROM users WHERE id = $1;",
         [res.body.data.id],
       );
-      expect(dbCheck.rows[0]?.password_hash.startsWith("$argon2id$")).toBe(true);
+      expect(dbCheck.rows[0]?.password_hash.startsWith("$argon2id$")).toBe(
+        true,
+      );
     });
 
     it("returns 409 Conflict with ERR_DUPLICATE_EMAIL when email is already registered", async () => {
@@ -118,12 +120,10 @@ describe("IAM Authentication & User Endpoints (FEAT-IAM-02)", () => {
     let accessToken: string;
 
     it("authenticates valid credentials, sets HTTP-only refresh cookie and returns access JWT", async () => {
-      const res = await request(app)
-        .post("/api/v1/auth/login")
-        .send({
-          email: "auth_user1@jewelcore.local",
-          password: "SuperSecretPassword123",
-        });
+      const res = await request(app).post("/api/v1/auth/login").send({
+        email: "auth_user1@jewelcore.local",
+        password: "SuperSecretPassword123",
+      });
 
       expect(res.status).toBe(200);
       expect(res.body.data.accessToken).toBeDefined();
@@ -132,8 +132,8 @@ describe("IAM Authentication & User Endpoints (FEAT-IAM-02)", () => {
       // Verify HTTP-only cookie
       const cookies = res.headers["set-cookie"];
       expect(cookies).toBeDefined();
-      const hasHttpOnlyRefresh = cookies.some((c: string) =>
-        c.includes("refreshToken=") && c.includes("HttpOnly"),
+      const hasHttpOnlyRefresh = cookies.some(
+        (c: string) => c.includes("refreshToken=") && c.includes("HttpOnly"),
       );
       expect(hasHttpOnlyRefresh).toBe(true);
 
@@ -141,12 +141,10 @@ describe("IAM Authentication & User Endpoints (FEAT-IAM-02)", () => {
     });
 
     it("rejects invalid password credentials with 401 Unauthorized", async () => {
-      const res = await request(app)
-        .post("/api/v1/auth/login")
-        .send({
-          email: "auth_user1@jewelcore.local",
-          password: "WrongPassword999",
-        });
+      const res = await request(app).post("/api/v1/auth/login").send({
+        email: "auth_user1@jewelcore.local",
+        password: "WrongPassword999",
+      });
 
       expect(res.status).toBe(401);
       expect(res.body.code).toBe("ERR_INVALID_CREDENTIALS");
@@ -154,44 +152,36 @@ describe("IAM Authentication & User Endpoints (FEAT-IAM-02)", () => {
 
     it("triggers temporary account lockout after repeated brute-force failures", async () => {
       // Create user for lockout test
-      await request(app)
-        .post("/api/v1/auth/register")
-        .send({
-          organizationId: testOrgId,
-          email: "auth_lockout@jewelcore.local",
-          password: "TargetPassword123",
-          firstName: "Brute",
-          lastName: "Target",
-        });
+      await request(app).post("/api/v1/auth/register").send({
+        organizationId: testOrgId,
+        email: "auth_lockout@jewelcore.local",
+        password: "TargetPassword123",
+        firstName: "Brute",
+        lastName: "Target",
+      });
 
       // 4 failures: 401 Unauthorized
       for (let i = 0; i < 4; i++) {
-        const failRes = await request(app)
-          .post("/api/v1/auth/login")
-          .send({
-            email: "auth_lockout@jewelcore.local",
-            password: "InvalidPasswordAttempt",
-          });
+        const failRes = await request(app).post("/api/v1/auth/login").send({
+          email: "auth_lockout@jewelcore.local",
+          password: "InvalidPasswordAttempt",
+        });
         expect(failRes.status).toBe(401);
       }
 
       // 5th failure: triggers 403 Forbidden with ERR_ACCOUNT_LOCKED
-      const lockRes = await request(app)
-        .post("/api/v1/auth/login")
-        .send({
-          email: "auth_lockout@jewelcore.local",
-          password: "InvalidPasswordAttempt",
-        });
+      const lockRes = await request(app).post("/api/v1/auth/login").send({
+        email: "auth_lockout@jewelcore.local",
+        password: "InvalidPasswordAttempt",
+      });
       expect(lockRes.status).toBe(403);
       expect(lockRes.body.code).toBe("ERR_ACCOUNT_LOCKED");
 
       // Subsequent attempt even with correct password is blocked until lock expires
-      const blockedRes = await request(app)
-        .post("/api/v1/auth/login")
-        .send({
-          email: "auth_lockout@jewelcore.local",
-          password: "TargetPassword123",
-        });
+      const blockedRes = await request(app).post("/api/v1/auth/login").send({
+        email: "auth_lockout@jewelcore.local",
+        password: "TargetPassword123",
+      });
       expect(blockedRes.status).toBe(403);
       expect(blockedRes.body.code).toBe("ERR_ACCOUNT_LOCKED");
     });
@@ -216,4 +206,3 @@ describe("IAM Authentication & User Endpoints (FEAT-IAM-02)", () => {
     });
   });
 });
-

@@ -1,11 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import { createApp } from "../src/app.js";
-import {
-  runAllMigrations,
-  closePool,
-  query,
-} from "@jewelcore/database";
+import { runAllMigrations, closePool, query } from "@jewelcore/database";
 
 describe("IAM Organizations & Stores API Endpoints (FEAT-IAM-01)", () => {
   const app = createApp();
@@ -60,12 +56,10 @@ describe("IAM Organizations & Stores API Endpoints (FEAT-IAM-01)", () => {
     });
 
     it("returns 400 Bad Request with ERR_VALIDATION when payload is invalid", async () => {
-      const res = await request(app)
-        .post("/api/v1/iam/organizations")
-        .send({
-          code: "", // invalid empty code
-          name: "Invalid Corp",
-        });
+      const res = await request(app).post("/api/v1/iam/organizations").send({
+        code: "", // invalid empty code
+        name: "Invalid Corp",
+      });
 
       expect(res.status).toBe(400);
       expect(res.body.code).toBe("ERR_VALIDATION");
@@ -75,7 +69,9 @@ describe("IAM Organizations & Stores API Endpoints (FEAT-IAM-01)", () => {
 
   describe("GET /api/v1/iam/organizations/:id", () => {
     it("returns 200 OK and organization data for valid ID", async () => {
-      const res = await request(app).get(`/api/v1/iam/organizations/${createdOrgId}`);
+      const res = await request(app).get(
+        `/api/v1/iam/organizations/${createdOrgId}`,
+      );
 
       expect(res.status).toBe(200);
       expect(res.body.data.id).toBe(createdOrgId);
@@ -109,9 +105,7 @@ describe("IAM Organizations & Stores API Endpoints (FEAT-IAM-01)", () => {
         },
       };
 
-      const res = await request(app)
-        .post("/api/v1/iam/stores")
-        .send(payload);
+      const res = await request(app).post("/api/v1/iam/stores").send(payload);
 
       expect(res.status).toBe(201);
       expect(res.body.data).toBeDefined();
@@ -129,9 +123,7 @@ describe("IAM Organizations & Stores API Endpoints (FEAT-IAM-01)", () => {
         storeType: "RETAIL_STORE",
       };
 
-      const res = await request(app)
-        .post("/api/v1/iam/stores")
-        .send(payload);
+      const res = await request(app).post("/api/v1/iam/stores").send(payload);
 
       expect(res.status).toBe(409);
       expect(res.body.code).toBe("ERR_DUPLICATE_STORE_CODE");
@@ -145,9 +137,7 @@ describe("IAM Organizations & Stores API Endpoints (FEAT-IAM-01)", () => {
         storeType: "RETAIL_STORE",
       };
 
-      const res = await request(app)
-        .post("/api/v1/iam/stores")
-        .send(payload);
+      const res = await request(app).post("/api/v1/iam/stores").send(payload);
 
       expect(res.status).toBe(404);
       expect(res.body.code).toBe("ERR_NOT_FOUND");

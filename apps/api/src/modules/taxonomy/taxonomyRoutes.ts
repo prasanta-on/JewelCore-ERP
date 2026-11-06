@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { authenticate, requirePermission } from "../../common/authMiddleware.js";
+import {
+  authenticate,
+  requirePermission,
+} from "../../common/authMiddleware.js";
 import {
   createCategoryHandler,
   listCategoriesHandler,
@@ -37,33 +40,61 @@ export function createTaxonomyRouter(): Router {
   router.get("/tree", getTaxonomyTreeHandler);
 
   // Categories (Entity 10)
-  router.post("/categories", requirePermission("taxonomy:write"), createCategoryHandler);
+  router.post(
+    "/categories",
+    requirePermission("taxonomy:write"),
+    createCategoryHandler,
+  );
   router.get("/categories", listCategoriesHandler);
   router.get("/categories/:id", getCategoryHandler);
   router.get("/categories/:categoryId/subcategories", listSubcategoriesHandler);
 
   // Subcategories (Entity 11)
-  router.post("/subcategories", requirePermission("taxonomy:write"), createSubcategoryHandler);
+  router.post(
+    "/subcategories",
+    requirePermission("taxonomy:write"),
+    createSubcategoryHandler,
+  );
   router.get("/subcategories/:id", getSubcategoryHandler);
 
   // Materials (Entity 12 - FEAT-TAX-02)
-  router.post("/materials", requirePermission("taxonomy:write"), createMaterialHandler);
+  router.post(
+    "/materials",
+    requirePermission("taxonomy:write"),
+    createMaterialHandler,
+  );
   router.get("/materials", listMaterialsHandler);
   router.get("/materials/:id", getMaterialHandler);
 
   // Purities (Entity 13 - FEAT-TAX-02 / DEC-05)
-  router.post("/materials/:materialId/purities", requirePermission("taxonomy:write"), createPurityHandler);
-  router.post("/purities", requirePermission("taxonomy:write"), createPurityHandler);
+  router.post(
+    "/materials/:materialId/purities",
+    requirePermission("taxonomy:write"),
+    createPurityHandler,
+  );
+  router.post(
+    "/purities",
+    requirePermission("taxonomy:write"),
+    createPurityHandler,
+  );
   router.get("/purities", listPuritiesHandler);
   router.get("/purities/:id", getPurityHandler);
 
   // Gemstones (Entity 14 - FEAT-TAX-03)
-  router.post("/gemstones", requirePermission("taxonomy:write"), createGemstoneHandler);
+  router.post(
+    "/gemstones",
+    requirePermission("taxonomy:write"),
+    createGemstoneHandler,
+  );
   router.get("/gemstones", listGemstonesHandler);
   router.get("/gemstones/:id", getGemstoneHandler);
 
   // Products (Entity 15 - FEAT-TAX-04)
-  router.post("/products", requirePermission("taxonomy:write"), createProductHandler);
+  router.post(
+    "/products",
+    requirePermission("taxonomy:write"),
+    createProductHandler,
+  );
   router.get("/products", listProductsHandler);
   router.get("/products/:id", getProductHandler);
 
@@ -71,8 +102,16 @@ export function createTaxonomyRouter(): Router {
   router.post("/skus", requirePermission("taxonomy:write"), createSkuHandler);
   router.get("/skus", listSkusHandler);
   router.get("/skus/:id", getSkuHandler);
-  router.patch("/skus/:id", requirePermission("taxonomy:write"), updateSkuHandler);
-  router.post("/skus/:skuId/gemstone-specs", requirePermission("taxonomy:write"), createGemstoneSpecHandler);
+  router.patch(
+    "/skus/:id",
+    requirePermission("taxonomy:write"),
+    updateSkuHandler,
+  );
+  router.post(
+    "/skus/:skuId/gemstone-specs",
+    requirePermission("taxonomy:write"),
+    createGemstoneSpecHandler,
+  );
 
   return router;
 }

@@ -114,13 +114,17 @@ const SAMPLE_STORAGE_HIERARCHY: VaultHierarchyWithOccupancy[] = [
 ];
 
 export default function StoragePage() {
-  const [vaults, setVaults] = useState<VaultHierarchyWithOccupancy[]>(SAMPLE_STORAGE_HIERARCHY);
+  const [vaults, setVaults] = useState<VaultHierarchyWithOccupancy[]>(
+    SAMPLE_STORAGE_HIERARCHY,
+  );
 
   useEffect(() => {
     // Optionally fetch live hierarchy if API is accessible in client environment
     async function loadLiveHierarchy() {
       try {
-        const res = await fetch("/api/v1/storage/hierarchy", { credentials: "omit" });
+        const res = await fetch("/api/v1/storage/hierarchy", {
+          credentials: "omit",
+        });
         if (res.ok) {
           const body = await res.json();
           if (Array.isArray(body.data) && body.data.length > 0) {
@@ -135,7 +139,13 @@ export default function StoragePage() {
   }, []);
 
   return (
-    <main style={{ minHeight: "100vh", backgroundColor: "#f8fafc", padding: "1rem" }}>
+    <main
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "#f8fafc",
+        padding: "1rem",
+      }}
+    >
       <StorageDirectoryView
         storeName="Flagship Retail Store"
         storeCode="TOR-FLAG-01"

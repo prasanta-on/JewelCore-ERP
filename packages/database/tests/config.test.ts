@@ -47,7 +47,8 @@ describe("Database Configuration Unit Tests", () => {
 
   it("parses connection parameters from DATABASE_URL if present", () => {
     const config = loadDatabaseConfig({
-      DATABASE_URL: "postgres://custom_user:custom_pass@db.example.com:5439/custom_db",
+      DATABASE_URL:
+        "postgres://custom_user:custom_pass@db.example.com:5439/custom_db",
     });
     expect(config.host).toBe("db.example.com");
     expect(config.port).toBe(5439);

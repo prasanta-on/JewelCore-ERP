@@ -47,7 +47,10 @@ export const createOrganizationSchema = z.object({
     .trim()
     .min(1, "Organization code is required")
     .max(50, "Organization code must not exceed 50 characters")
-    .regex(/^[A-Z0-9_-]+$/i, "Organization code must contain only letters, numbers, hyphens, and underscores"),
+    .regex(
+      /^[A-Z0-9_-]+$/i,
+      "Organization code must contain only letters, numbers, hyphens, and underscores",
+    ),
   name: z
     .string()
     .trim()
@@ -72,7 +75,10 @@ export const createStoreSchema = z.object({
     .trim()
     .min(1, "Store code is required")
     .max(50, "Store code must not exceed 50 characters")
-    .regex(/^[A-Z0-9_-]+$/i, "Store code must contain only letters, numbers, hyphens, and underscores"),
+    .regex(
+      /^[A-Z0-9_-]+$/i,
+      "Store code must contain only letters, numbers, hyphens, and underscores",
+    ),
   name: z
     .string()
     .trim()
@@ -83,7 +89,12 @@ export const createStoreSchema = z.object({
   }),
   addressJson: z.record(z.unknown()).optional().default({}),
   phone: z.string().trim().max(50).optional().nullable(),
-  email: z.string().trim().email("Invalid store email address").optional().nullable(),
+  email: z
+    .string()
+    .trim()
+    .email("Invalid store email address")
+    .optional()
+    .nullable(),
   isActive: z.boolean().default(true),
 });
 
@@ -144,7 +155,8 @@ export const RoleScopeLevel = {
   STORE: "STORE",
 } as const;
 
-export type RoleScopeLevel = (typeof RoleScopeLevel)[keyof typeof RoleScopeLevel];
+export type RoleScopeLevel =
+  (typeof RoleScopeLevel)[keyof typeof RoleScopeLevel];
 
 export interface Permission {
   id: string;
@@ -170,7 +182,11 @@ export interface RoleWithPermissions extends Role {
 }
 
 export const createRoleSchema = z.object({
-  organizationId: z.string().uuid("Organization ID must be a valid UUID").optional().nullable(),
+  organizationId: z
+    .string()
+    .uuid("Organization ID must be a valid UUID")
+    .optional()
+    .nullable(),
   code: z
     .string()
     .trim()
@@ -242,20 +258,28 @@ export const createOrganizationMembershipSchema = z.object({
   userId: z.string().uuid("User ID must be a valid UUID"),
   isActive: z.boolean().default(true),
 });
-export type CreateOrganizationMembershipInput = z.infer<typeof createOrganizationMembershipSchema>;
+export type CreateOrganizationMembershipInput = z.infer<
+  typeof createOrganizationMembershipSchema
+>;
 
 export const createStoreMembershipSchema = z.object({
-  organizationMembershipId: z.string().uuid("Organization Membership ID must be a valid UUID"),
+  organizationMembershipId: z
+    .string()
+    .uuid("Organization Membership ID must be a valid UUID"),
   storeId: z.string().uuid("Store ID must be a valid UUID"),
   isDefault: z.boolean().default(false),
   isActive: z.boolean().default(true),
 });
-export type CreateStoreMembershipInput = z.infer<typeof createStoreMembershipSchema>;
+export type CreateStoreMembershipInput = z.infer<
+  typeof createStoreMembershipSchema
+>;
 
 export const assignMembershipRoleSchema = z.object({
-  storeMembershipId: z.string().uuid("Store Membership ID must be a valid UUID"),
+  storeMembershipId: z
+    .string()
+    .uuid("Store Membership ID must be a valid UUID"),
   roleId: z.string().uuid("Role ID must be a valid UUID"),
 });
-export type AssignMembershipRoleInput = z.infer<typeof assignMembershipRoleSchema>;
-
-
+export type AssignMembershipRoleInput = z.infer<
+  typeof assignMembershipRoleSchema
+>;

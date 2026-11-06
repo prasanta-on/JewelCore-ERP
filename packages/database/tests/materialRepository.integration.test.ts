@@ -38,7 +38,10 @@ describe("Materials & Purities Repository Integration Tests (FEAT-TAX-02 / DEC-0
   });
 
   afterAll(async () => {
-    await query("DELETE FROM materials WHERE organization_id IN ($1, $2);", [testOrg1Id, testOrg2Id]);
+    await query("DELETE FROM materials WHERE organization_id IN ($1, $2);", [
+      testOrg1Id,
+      testOrg2Id,
+    ]);
     await query("DELETE FROM organizations WHERE code LIKE 'MAT_TEST_%';");
     await closePool();
   });

@@ -24,7 +24,9 @@ export async function authenticate(
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      throw new UnauthorizedError("Authorization header with Bearer token is required");
+      throw new UnauthorizedError(
+        "Authorization header with Bearer token is required",
+      );
     }
 
     const token = authHeader.substring(7);
@@ -47,10 +49,16 @@ export async function authenticate(
  * Otherwise, rejects with 403 Forbidden and code 'ERR_INSUFFICIENT_PERMISSIONS'.
  */
 export function requirePermission(permissionCode: string) {
-  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+  return async (
+    req: Request,
+    _res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       if (!req.user) {
-        throw new UnauthorizedError("Authentication required before permission evaluation");
+        throw new UnauthorizedError(
+          "Authentication required before permission evaluation",
+        );
       }
 
       // Check if user has SYSTEM_ADMIN role

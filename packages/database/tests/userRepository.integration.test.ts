@@ -25,13 +25,16 @@ describe("IAM User Repository Integration Tests", () => {
   });
 
   afterAll(async () => {
-    await query("DELETE FROM users WHERE email LIKE 'testuser%@jewelcore.local';");
+    await query(
+      "DELETE FROM users WHERE email LIKE 'testuser%@jewelcore.local';",
+    );
     await query("DELETE FROM organizations WHERE code = 'USER_REPO_ORG';");
     await closePool();
   });
 
   it("creates a user with argon2id hash and retrieves by ID and email", async () => {
-    const fakeArgon2Hash = "$argon2id$v=19$m=19456,t=2,p=1$fakeSalt$fakeHash12345";
+    const fakeArgon2Hash =
+      "$argon2id$v=19$m=19456,t=2,p=1$fakeSalt$fakeHash12345";
 
     const user = await createUser({
       organizationId: testOrgId,

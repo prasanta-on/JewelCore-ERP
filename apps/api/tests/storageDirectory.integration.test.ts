@@ -131,7 +131,9 @@ describe("Compartment Allocation & Storage Directory (FEAT-STOR-02)", () => {
     const simParam = JSON.stringify({ [testCompId]: 5 });
 
     const res = await request(app)
-      .get(`/api/v1/storage/hierarchy?simulateOccupancy=${encodeURIComponent(simParam)}`)
+      .get(
+        `/api/v1/storage/hierarchy?simulateOccupancy=${encodeURIComponent(simParam)}`,
+      )
       .set("Authorization", `Bearer ${operatorToken}`)
       .set("x-store-id", store001Id);
 
@@ -150,11 +152,15 @@ describe("Compartment Allocation & Storage Directory (FEAT-STOR-02)", () => {
     // Test Near Capacity threshold (e.g. 9 out of 10 = 90% -> NEAR_CAPACITY)
     const simNearParam = JSON.stringify({ [testCompId]: 9 });
     const resNear = await request(app)
-      .get(`/api/v1/storage/hierarchy?simulateOccupancy=${encodeURIComponent(simNearParam)}`)
+      .get(
+        `/api/v1/storage/hierarchy?simulateOccupancy=${encodeURIComponent(simNearParam)}`,
+      )
       .set("Authorization", `Bearer ${operatorToken}`)
       .set("x-store-id", store001Id);
 
-    const compNear = resNear.body.data[0].lockers[0].compartments.find((c: any) => c.id === testCompId);
+    const compNear = resNear.body.data[0].lockers[0].compartments.find(
+      (c: any) => c.id === testCompId,
+    );
     expect(compNear.occupiedItemCount).toBe(9);
     expect(compNear.occupancyPercentage).toBe(90);
     expect(compNear.status).toBe("NEAR_CAPACITY");
@@ -162,11 +168,15 @@ describe("Compartment Allocation & Storage Directory (FEAT-STOR-02)", () => {
     // Test Full threshold (10 out of 10 = 100% -> FULL)
     const simFullParam = JSON.stringify({ [testCompId]: 10 });
     const resFull = await request(app)
-      .get(`/api/v1/storage/hierarchy?simulateOccupancy=${encodeURIComponent(simFullParam)}`)
+      .get(
+        `/api/v1/storage/hierarchy?simulateOccupancy=${encodeURIComponent(simFullParam)}`,
+      )
       .set("Authorization", `Bearer ${operatorToken}`)
       .set("x-store-id", store001Id);
 
-    const compFull = resFull.body.data[0].lockers[0].compartments.find((c: any) => c.id === testCompId);
+    const compFull = resFull.body.data[0].lockers[0].compartments.find(
+      (c: any) => c.id === testCompId,
+    );
     expect(compFull.occupiedItemCount).toBe(10);
     expect(compFull.occupancyPercentage).toBe(100);
     expect(compFull.status).toBe("FULL");

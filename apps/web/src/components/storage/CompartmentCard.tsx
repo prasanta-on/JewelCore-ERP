@@ -53,10 +53,26 @@ export function CompartmentCard({ compartment }: CompartmentCardProps) {
         gap: "0.5rem",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <div>
-          <span style={{ fontWeight: 600, fontSize: "0.95rem", color: "#0f172a" }}>{code}</span>
-          <span style={{ marginLeft: "0.5rem", fontSize: "0.8rem", color: "#64748b" }}>
+          <span
+            style={{ fontWeight: 600, fontSize: "0.95rem", color: "#0f172a" }}
+          >
+            {code}
+          </span>
+          <span
+            style={{
+              marginLeft: "0.5rem",
+              fontSize: "0.8rem",
+              color: "#64748b",
+            }}
+          >
             (Tray #{compartmentNumber})
           </span>
         </div>
@@ -80,10 +96,18 @@ export function CompartmentCard({ compartment }: CompartmentCardProps) {
 
       {/* Real-Time Occupancy Visualizer Bar */}
       <div style={{ marginTop: "0.25rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: "#475569" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            fontSize: "0.8rem",
+            color: "#475569",
+          }}
+        >
           <span>Occupancy:</span>
           <span data-testid="occupancy-count" style={{ fontWeight: 600 }}>
-            {occupiedItemCount} {maxItemCapacity ? `/ ${maxItemCapacity} pieces` : "pieces"}
+            {occupiedItemCount}{" "}
+            {maxItemCapacity ? `/ ${maxItemCapacity} pieces` : "pieces"}
             {occupancyPercentage !== null ? ` (${occupancyPercentage}%)` : ""}
           </span>
         </div>
@@ -118,7 +142,13 @@ export function CompartmentCard({ compartment }: CompartmentCardProps) {
       )}
 
       {/* Link to resident inventory items */}
-      <div style={{ marginTop: "0.5rem", borderTop: "1px solid #f1f5f9", paddingTop: "0.5rem" }}>
+      <div
+        style={{
+          marginTop: "0.5rem",
+          borderTop: "1px solid #f1f5f9",
+          paddingTop: "0.5rem",
+        }}
+      >
         <a
           href={`/inventory?compartmentId=${id}`}
           data-testid="resident-items-link"

@@ -131,7 +131,15 @@ export async function createVault(
     VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     RETURNING id, store_id, code, name, vault_type, access_level_required, is_active, created_at, updated_at;
     `,
-    [id, data.storeId, data.code, data.name, vaultType, accessLevelRequired, isActive],
+    [
+      id,
+      data.storeId,
+      data.code,
+      data.name,
+      vaultType,
+      accessLevelRequired,
+      isActive,
+    ],
   );
 
   const row = result.rows[0];
@@ -539,7 +547,10 @@ export async function getStorageHierarchy(
     counts = new Map<string, number>();
     const executor = clientOverride ?? getPool();
     try {
-      const invCheck = await executor.query<{ current_compartment_id: string; item_count: string }>(
+      const invCheck = await executor.query<{
+        current_compartment_id: string;
+        item_count: string;
+      }>(
         `
         SELECT current_compartment_id, COUNT(*)::text as item_count
         FROM inventory_items

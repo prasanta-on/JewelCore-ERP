@@ -75,7 +75,9 @@ describe("Precious Metals & Purity API Endpoints (FEAT-TAX-02 / DEC-05)", () => 
   });
 
   afterAll(async () => {
-    await query("DELETE FROM materials WHERE organization_id = $1;", [testOrgId]);
+    await query("DELETE FROM materials WHERE organization_id = $1;", [
+      testOrgId,
+    ]);
     await query("DELETE FROM users WHERE email LIKE 'mat_%@jewelcore.local';");
     await query("DELETE FROM organizations WHERE code LIKE 'MAT_API_%';");
     await closePool();

@@ -156,7 +156,11 @@ export async function registerFailedLoginAttempt(
   maxAttempts: number = 5,
   lockMinutes: number = 15,
   clientOverride?: Queryable,
-): Promise<{ failedAttempts: number; isLocked: boolean; lockedUntil: Date | null }> {
+): Promise<{
+  failedAttempts: number;
+  isLocked: boolean;
+  lockedUntil: Date | null;
+}> {
   const executor = clientOverride ?? getPool();
 
   const result = await executor.query<{
@@ -182,7 +186,8 @@ export async function registerFailedLoginAttempt(
     throw new Error(`User not found for failed login registration: ${id}`);
   }
 
-  const isLocked = row.locked_until !== null && new Date(row.locked_until) > new Date();
+  const isLocked =
+    row.locked_until !== null && new Date(row.locked_until) > new Date();
 
   return {
     failedAttempts: row.failed_login_attempts,

@@ -50,7 +50,10 @@ export async function createCategoryHandler(
   try {
     const orgId = req.body.organizationId ?? req.user?.orgId;
     if (!orgId) {
-      throw new BadRequestError("Organization context is required", "ERR_MISSING_ORG_CONTEXT");
+      throw new BadRequestError(
+        "Organization context is required",
+        "ERR_MISSING_ORG_CONTEXT",
+      );
     }
 
     const validated = createCategorySchema.parse({
@@ -76,7 +79,10 @@ export async function listCategoriesHandler(
   try {
     const orgId = req.user?.orgId;
     if (!orgId) {
-      throw new BadRequestError("Organization context is required", "ERR_MISSING_ORG_CONTEXT");
+      throw new BadRequestError(
+        "Organization context is required",
+        "ERR_MISSING_ORG_CONTEXT",
+      );
     }
 
     const categories = await listCategoriesByOrg(orgId);
@@ -188,7 +194,10 @@ export async function getTaxonomyTreeHandler(
   try {
     const orgId = req.user?.orgId;
     if (!orgId) {
-      throw new BadRequestError("Organization context is required", "ERR_MISSING_ORG_CONTEXT");
+      throw new BadRequestError(
+        "Organization context is required",
+        "ERR_MISSING_ORG_CONTEXT",
+      );
     }
 
     const tree = await getTaxonomyTree(orgId);
@@ -213,7 +222,10 @@ export async function createMaterialHandler(
   try {
     const orgId = req.body.organizationId ?? req.user?.orgId;
     if (!orgId) {
-      throw new BadRequestError("Organization context is required", "ERR_MISSING_ORG_CONTEXT");
+      throw new BadRequestError(
+        "Organization context is required",
+        "ERR_MISSING_ORG_CONTEXT",
+      );
     }
 
     const validated = createMaterialSchema.parse({
@@ -239,12 +251,16 @@ export async function listMaterialsHandler(
   try {
     const orgId = req.user?.orgId;
     if (!orgId) {
-      throw new BadRequestError("Organization context is required", "ERR_MISSING_ORG_CONTEXT");
+      throw new BadRequestError(
+        "Organization context is required",
+        "ERR_MISSING_ORG_CONTEXT",
+      );
     }
 
-    const isActive = req.query.isActive !== undefined
-      ? req.query.isActive === "true"
-      : undefined;
+    const isActive =
+      req.query.isActive !== undefined
+        ? req.query.isActive === "true"
+        : undefined;
 
     const materials = await listMaterials({ organizationId: orgId, isActive });
     res.status(200).json({
@@ -293,9 +309,13 @@ export async function createPurityHandler(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const materialId = (req.params.materialId ?? req.body.materialId) as string | undefined;
+    const materialId = (req.params.materialId ?? req.body.materialId) as
+      string | undefined;
     if (!materialId) {
-      throw new BadRequestError("Material ID is required", "ERR_MISSING_MATERIAL_ID");
+      throw new BadRequestError(
+        "Material ID is required",
+        "ERR_MISSING_MATERIAL_ID",
+      );
     }
 
     // Verify material exists
@@ -325,12 +345,14 @@ export async function listPuritiesHandler(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const materialId = (req.query.materialId ?? req.params.materialId) as string | undefined;
+    const materialId = (req.query.materialId ?? req.params.materialId) as
+      string | undefined;
     const orgId = req.user?.orgId;
 
-    const isActive = req.query.isActive !== undefined
-      ? req.query.isActive === "true"
-      : undefined;
+    const isActive =
+      req.query.isActive !== undefined
+        ? req.query.isActive === "true"
+        : undefined;
 
     const purities = await listPurities({
       materialId,
@@ -385,7 +407,10 @@ export async function createGemstoneHandler(
   try {
     const orgId = req.body.organizationId ?? req.user?.orgId;
     if (!orgId) {
-      throw new BadRequestError("Organization context is required", "ERR_MISSING_ORG_CONTEXT");
+      throw new BadRequestError(
+        "Organization context is required",
+        "ERR_MISSING_ORG_CONTEXT",
+      );
     }
 
     const validated = createGemstoneSchema.parse({
@@ -411,13 +436,17 @@ export async function listGemstonesHandler(
   try {
     const orgId = req.user?.orgId;
     if (!orgId) {
-      throw new BadRequestError("Organization context is required", "ERR_MISSING_ORG_CONTEXT");
+      throw new BadRequestError(
+        "Organization context is required",
+        "ERR_MISSING_ORG_CONTEXT",
+      );
     }
 
     const gemstoneType = req.query.gemstoneType as GemstoneType | undefined;
-    const isActive = req.query.isActive !== undefined
-      ? req.query.isActive === "true"
-      : undefined;
+    const isActive =
+      req.query.isActive !== undefined
+        ? req.query.isActive === "true"
+        : undefined;
 
     const gemstones = await listGemstones({
       organizationId: orgId,
@@ -472,7 +501,10 @@ export async function createProductHandler(
   try {
     const orgId = req.body.organizationId ?? req.user?.orgId;
     if (!orgId) {
-      throw new BadRequestError("Organization context is required", "ERR_MISSING_ORG_CONTEXT");
+      throw new BadRequestError(
+        "Organization context is required",
+        "ERR_MISSING_ORG_CONTEXT",
+      );
     }
 
     const validated = createProductSchema.parse({
@@ -498,14 +530,18 @@ export async function listProductsHandler(
   try {
     const orgId = req.user?.orgId;
     if (!orgId) {
-      throw new BadRequestError("Organization context is required", "ERR_MISSING_ORG_CONTEXT");
+      throw new BadRequestError(
+        "Organization context is required",
+        "ERR_MISSING_ORG_CONTEXT",
+      );
     }
 
     const categoryId = req.query.categoryId as string | undefined;
     const materialId = req.query.materialId as string | undefined;
-    const isActive = req.query.isActive !== undefined
-      ? req.query.isActive === "true"
-      : undefined;
+    const isActive =
+      req.query.isActive !== undefined
+        ? req.query.isActive === "true"
+        : undefined;
 
     const products = await listProducts({
       organizationId: orgId,
@@ -561,7 +597,10 @@ export async function createSkuHandler(
   try {
     const orgId = req.body.organizationId ?? req.user?.orgId;
     if (!orgId) {
-      throw new BadRequestError("Organization context is required", "ERR_MISSING_ORG_CONTEXT");
+      throw new BadRequestError(
+        "Organization context is required",
+        "ERR_MISSING_ORG_CONTEXT",
+      );
     }
 
     const validated = createProductSkuSchema.parse({
@@ -587,12 +626,17 @@ export async function listSkusHandler(
   try {
     const orgId = req.user?.orgId;
     if (!orgId) {
-      throw new BadRequestError("Organization context is required", "ERR_MISSING_ORG_CONTEXT");
+      throw new BadRequestError(
+        "Organization context is required",
+        "ERR_MISSING_ORG_CONTEXT",
+      );
     }
 
     const productId = req.query.productId as string | undefined;
     const isActive =
-      req.query.isActive !== undefined ? req.query.isActive === "true" : undefined;
+      req.query.isActive !== undefined
+        ? req.query.isActive === "true"
+        : undefined;
 
     const skus = await listProductSkus({
       organizationId: orgId,
@@ -689,6 +733,3 @@ export async function createGemstoneSpecHandler(
     next(err);
   }
 }
-
-
-

@@ -105,9 +105,15 @@ describe("Product Master Styles API Endpoints (FEAT-TAX-04)", () => {
   });
 
   afterAll(async () => {
-    await query("DELETE FROM products WHERE organization_id = $1;", [testOrgId]);
-    await query("DELETE FROM materials WHERE organization_id = $1;", [testOrgId]);
-    await query("DELETE FROM categories WHERE organization_id = $1;", [testOrgId]);
+    await query("DELETE FROM products WHERE organization_id = $1;", [
+      testOrgId,
+    ]);
+    await query("DELETE FROM materials WHERE organization_id = $1;", [
+      testOrgId,
+    ]);
+    await query("DELETE FROM categories WHERE organization_id = $1;", [
+      testOrgId,
+    ]);
     await query("DELETE FROM users WHERE email LIKE 'prod_%@jewelcore.local';");
     await query("DELETE FROM organizations WHERE code LIKE 'PROD_API_%';");
     await closePool();
@@ -214,6 +220,8 @@ describe("Product Master Styles API Endpoints (FEAT-TAX-04)", () => {
 
     expect(listRes.status).toBe(200);
     expect(listRes.body.data.length).toBeGreaterThanOrEqual(1);
-    expect(listRes.body.data.some((p: any) => p.id === createdProductId)).toBe(true);
+    expect(listRes.body.data.some((p: any) => p.id === createdProductId)).toBe(
+      true,
+    );
   });
 });

@@ -25,7 +25,10 @@ export async function createVaultHandler(
   try {
     const storeId = req.storeContext?.storeId ?? req.body.storeId;
     if (!storeId) {
-      throw new BadRequestError("Store context or storeId is required", "ERR_MISSING_STORE_CONTEXT");
+      throw new BadRequestError(
+        "Store context or storeId is required",
+        "ERR_MISSING_STORE_CONTEXT",
+      );
     }
 
     const validated = createVaultSchema.parse({
@@ -51,7 +54,10 @@ export async function listVaultsHandler(
   try {
     const storeId = req.storeContext?.storeId;
     if (!storeId) {
-      throw new BadRequestError("Store context is required", "ERR_MISSING_STORE_CONTEXT");
+      throw new BadRequestError(
+        "Store context is required",
+        "ERR_MISSING_STORE_CONTEXT",
+      );
     }
 
     const vaults = await listVaultsByStore(storeId);
@@ -98,7 +104,10 @@ export async function createLockerHandler(
   try {
     const storeId = req.body.storeId ?? req.storeContext?.storeId;
     if (!storeId) {
-      throw new BadRequestError("Store context or storeId is required", "ERR_MISSING_STORE_CONTEXT");
+      throw new BadRequestError(
+        "Store context or storeId is required",
+        "ERR_MISSING_STORE_CONTEXT",
+      );
     }
 
     const validated = createLockerSchema.parse({
@@ -150,7 +159,10 @@ export async function createCompartmentHandler(
   try {
     const storeId = req.body.storeId ?? req.storeContext?.storeId;
     if (!storeId) {
-      throw new BadRequestError("Store context or storeId is required", "ERR_MISSING_STORE_CONTEXT");
+      throw new BadRequestError(
+        "Store context or storeId is required",
+        "ERR_MISSING_STORE_CONTEXT",
+      );
     }
 
     const validated = createCompartmentSchema.parse({
@@ -202,23 +214,35 @@ export async function getHierarchyHandler(
   try {
     const storeId = req.storeContext?.storeId;
     if (!storeId) {
-      throw new BadRequestError("Store context is required", "ERR_MISSING_STORE_CONTEXT");
+      throw new BadRequestError(
+        "Store context is required",
+        "ERR_MISSING_STORE_CONTEXT",
+      );
     }
 
     // Support simulated occupancy query for directory visualizer testing
     let occupancyMap: Map<string, number> | undefined;
-    if (req.query.simulateOccupancy && typeof req.query.simulateOccupancy === "string") {
+    if (
+      req.query.simulateOccupancy &&
+      typeof req.query.simulateOccupancy === "string"
+    ) {
       try {
         const parsed = JSON.parse(req.query.simulateOccupancy);
         if (typeof parsed === "object" && parsed !== null) {
-          occupancyMap = new Map(Object.entries(parsed).map(([k, v]) => [k, Number(v)]));
+          occupancyMap = new Map(
+            Object.entries(parsed).map(([k, v]) => [k, Number(v)]),
+          );
         }
       } catch {
         // ignore invalid JSON format in query parameter
       }
     }
 
-    const hierarchy = await getStorageHierarchy(storeId, undefined, occupancyMap);
+    const hierarchy = await getStorageHierarchy(
+      storeId,
+      undefined,
+      occupancyMap,
+    );
     res.status(200).json({
       data: hierarchy,
       timestamp: new Date().toISOString(),

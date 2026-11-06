@@ -35,27 +35,43 @@ const UUID_REGEX =
  * Scopes incoming requests to a specific physical store branch via the `x-store-id` header
  * (or fallback to user's default store). Rejects cross-store access attempts with 403 ERR_STORE_ACCESS_DENIED.
  */
-export function requireStoreContext(options: StoreContextOptions = { allowDefaultFallback: true }) {
-  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+export function requireStoreContext(
+  options: StoreContextOptions = { allowDefaultFallback: true },
+) {
+  return async (
+    req: Request,
+    _res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       if (!req.user) {
-        throw new UnauthorizedError("Authentication required before store context evaluation");
+        throw new UnauthorizedError(
+          "Authentication required before store context evaluation",
+        );
       }
 
       const rawStoreId = req.headers["x-store-id"];
       let targetStoreId: string | undefined;
 
       if (rawStoreId) {
-        const storeIdStr = Array.isArray(rawStoreId) ? rawStoreId[0] : rawStoreId;
+        const storeIdStr = Array.isArray(rawStoreId)
+          ? rawStoreId[0]
+          : rawStoreId;
         if (!storeIdStr || !UUID_REGEX.test(storeIdStr)) {
-          throw new BadRequestError("Invalid 'x-store-id' header format; valid UUID expected", "ERR_INVALID_STORE_ID");
+          throw new BadRequestError(
+            "Invalid 'x-store-id' header format; valid UUID expected",
+            "ERR_INVALID_STORE_ID",
+          );
         }
         targetStoreId = storeIdStr;
       }
 
       if (targetStoreId) {
         // Explicit store requested: verify active membership
-        const membership = await getUserStoreMembership(req.user.userId, targetStoreId);
+        const membership = await getUserStoreMembership(
+          req.user.userId,
+          targetStoreId,
+        );
         if (!membership || !membership.isActive) {
           throw new ForbiddenError(
             "Access to the requested store context is denied",
@@ -85,7 +101,8 @@ export function requireStoreContext(options: StoreContextOptions = { allowDefaul
           req.storeContext = {
             storeId: defaultMembership.storeId,
             organizationId: defaultMembership.organizationId,
-            organizationMembershipId: defaultMembership.organizationMembershipId,
+            organizationMembershipId:
+              defaultMembership.organizationMembershipId,
             storeMembershipId: defaultMembership.id,
             isDefault: defaultMembership.isDefault,
           };
@@ -103,3 +120,71 @@ export function requireStoreContext(options: StoreContextOptions = { allowDefaul
     }
   };
 }
+
+/**
+ * Express middleware that extracts store context if 'x-store-id' is provided or if default store exists,
+ * but does not reject requests when absent. Useful for routes that have optional store scoping.
+ */
+export function optionalStoreContext() {
+  return async (
+    req: Request,
+    _res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!req.user) {
+        return next();
+      }
+
+      const rawStoreId = req.headers["x-store-id"];
+      let targetStoreId: string | undefined;
+
+      if (rawStoreId) {
+        const storeIdStr = Array.isArray(rawStoreId)
+          ? rawStoreId[0]
+          : rawStoreId;
+        if (storeIdStr && UUID_REGEX.test(storeIdStr)) {
+          targetStoreId = storeIdStr;
+        }
+      }
+
+      if (targetStoreId) {
+        const membership = await getUserStoreMembership(
+          req.user.userId,
+          targetStoreId,
+        );
+        if (membership && membership.isActive) {
+          req.storeContext = {
+            storeId: membership.storeId,
+            organizationId: membership.organizationId,
+            organizationMembershipId: membership.organizationMembershipId,
+            storeMembershipId: membership.id,
+            isDefault: membership.isDefault,
+          };
+        }
+      } else {
+        const organizationId = req.user.orgId as string | undefined;
+        const defaultMembership = await getUserDefaultStoreMembership(
+          req.user.userId,
+          organizationId,
+        );
+
+        if (defaultMembership && defaultMembership.isActive) {
+          req.storeContext = {
+            storeId: defaultMembership.storeId,
+            organizationId: defaultMembership.organizationId,
+            organizationMembershipId:
+              defaultMembership.organizationMembershipId,
+            storeMembershipId: defaultMembership.id,
+            isDefault: defaultMembership.isDefault,
+          };
+        }
+      }
+      return next();
+    } catch {
+      return next();
+    }
+  };
+}
+
+export const storeContextMiddleware = optionalStoreContext();

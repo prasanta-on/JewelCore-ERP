@@ -1,5 +1,9 @@
 import type { Pool, PoolClient } from "pg";
-import type { Role, RoleScopeLevel, RoleWithPermissions } from "@jewelcore/shared";
+import type {
+  Role,
+  RoleScopeLevel,
+  RoleWithPermissions,
+} from "@jewelcore/shared";
 import { getPool } from "../pool.js";
 import { uuidv7 } from "../uuidv7.js";
 import { getPermissionsForRole } from "./permissionRepository.js";

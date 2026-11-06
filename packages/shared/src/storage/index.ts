@@ -89,7 +89,10 @@ export const createVaultSchema = z.object({
     .trim()
     .min(1, "Vault code is required")
     .max(50, "Vault code must not exceed 50 characters")
-    .regex(/^[A-Z0-9_-]+$/i, "Vault code must contain only letters, numbers, hyphens, and underscores"),
+    .regex(
+      /^[A-Z0-9_-]+$/i,
+      "Vault code must contain only letters, numbers, hyphens, and underscores",
+    ),
   name: z
     .string()
     .trim()
@@ -110,7 +113,10 @@ export const createLockerSchema = z.object({
     .trim()
     .min(1, "Locker code is required")
     .max(50, "Locker code must not exceed 50 characters")
-    .regex(/^[A-Z0-9_-]+$/i, "Locker code must contain only letters, numbers, hyphens, and underscores"),
+    .regex(
+      /^[A-Z0-9_-]+$/i,
+      "Locker code must contain only letters, numbers, hyphens, and underscores",
+    ),
   name: z
     .string()
     .trim()
@@ -135,7 +141,10 @@ export const createCompartmentSchema = z.object({
     .trim()
     .min(1, "Compartment code is required")
     .max(50, "Compartment code must not exceed 50 characters")
-    .regex(/^[A-Z0-9_-]+$/i, "Compartment code must contain only letters, numbers, hyphens, and underscores"),
+    .regex(
+      /^[A-Z0-9_-]+$/i,
+      "Compartment code must contain only letters, numbers, hyphens, and underscores",
+    ),
   name: z
     .string()
     .trim()

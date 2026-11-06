@@ -42,7 +42,10 @@ export async function createRoleHandler(
     const validated = createRoleSchema.parse(req.body);
 
     // Check code collision
-    const existing = await getRoleByCode(validated.code, validated.organizationId);
+    const existing = await getRoleByCode(
+      validated.code,
+      validated.organizationId,
+    );
     if (existing) {
       throw new ConflictError(
         `Role with code '${validated.code}' already exists`,

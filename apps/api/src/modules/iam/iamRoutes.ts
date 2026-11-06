@@ -49,4 +49,3 @@ export function createIamRouter(): Router {
 
   return router;
 }
-

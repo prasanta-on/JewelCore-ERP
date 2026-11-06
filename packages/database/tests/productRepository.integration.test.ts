@@ -63,7 +63,10 @@ describe("Products Repository Integration Tests (FEAT-TAX-04)", () => {
   });
 
   afterAll(async () => {
-    await query("DELETE FROM products WHERE organization_id IN ($1, $2);", [testOrg1Id, testOrg2Id]);
+    await query("DELETE FROM products WHERE organization_id IN ($1, $2);", [
+      testOrg1Id,
+      testOrg2Id,
+    ]);
     await query("DELETE FROM organizations WHERE code LIKE 'PRD_TEST_%';");
     await closePool();
   });

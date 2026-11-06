@@ -33,7 +33,10 @@ export const createCategorySchema = z.object({
     .trim()
     .min(1, "Category code is required")
     .max(50, "Category code must not exceed 50 characters")
-    .regex(/^[A-Z0-9_-]+$/i, "Category code must contain only letters, numbers, hyphens, and underscores"),
+    .regex(
+      /^[A-Z0-9_-]+$/i,
+      "Category code must contain only letters, numbers, hyphens, and underscores",
+    ),
   name: z
     .string()
     .trim()
@@ -52,7 +55,10 @@ export const createSubcategorySchema = z.object({
     .trim()
     .min(1, "Subcategory code is required")
     .max(50, "Subcategory code must not exceed 50 characters")
-    .regex(/^[A-Z0-9_-]+$/i, "Subcategory code must contain only letters, numbers, hyphens, and underscores"),
+    .regex(
+      /^[A-Z0-9_-]+$/i,
+      "Subcategory code must contain only letters, numbers, hyphens, and underscores",
+    ),
   name: z
     .string()
     .trim()

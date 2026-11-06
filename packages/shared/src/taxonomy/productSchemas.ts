@@ -28,7 +28,11 @@ export const createProductSchema = z
   .object({
     organizationId: z.string().uuid("Organization ID must be a valid UUID"),
     categoryId: z.string().uuid("Category ID must be a valid UUID"),
-    subcategoryId: z.string().uuid("Subcategory ID must be a valid UUID").optional().nullable(),
+    subcategoryId: z
+      .string()
+      .uuid("Subcategory ID must be a valid UUID")
+      .optional()
+      .nullable(),
     materialId: z.string().uuid("Material ID must be a valid UUID"),
     defaultPurityId: z.string().uuid("Default purity ID must be a valid UUID"),
     productCode: z
@@ -36,14 +40,20 @@ export const createProductSchema = z
       .trim()
       .min(1, "Product code is required")
       .max(50, "Product code must not exceed 50 characters")
-      .regex(/^[A-Z0-9_-]+$/i, "Product code must contain only letters, numbers, hyphens, and underscores")
+      .regex(
+        /^[A-Z0-9_-]+$/i,
+        "Product code must contain only letters, numbers, hyphens, and underscores",
+      )
       .optional(),
     code: z
       .string()
       .trim()
       .min(1, "Product code is required")
       .max(50, "Product code must not exceed 50 characters")
-      .regex(/^[A-Z0-9_-]+$/i, "Product code must contain only letters, numbers, hyphens, and underscores")
+      .regex(
+        /^[A-Z0-9_-]+$/i,
+        "Product code must contain only letters, numbers, hyphens, and underscores",
+      )
       .optional(),
     name: z
       .string()

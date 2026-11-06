@@ -63,7 +63,13 @@ export function LockerSection({ locker }: LockerSectionProps) {
       {isOpen && (
         <div style={{ padding: "1rem" }}>
           {locker.compartments.length === 0 ? (
-            <div style={{ color: "#94a3b8", fontSize: "0.875rem", fontStyle: "italic" }}>
+            <div
+              style={{
+                color: "#94a3b8",
+                fontSize: "0.875rem",
+                fontStyle: "italic",
+              }}
+            >
               No compartments configured in this locker.
             </div>
           ) : (

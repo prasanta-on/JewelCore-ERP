@@ -90,7 +90,10 @@ export async function createGemstone(
         "ERR_DUPLICATE_GEMSTONE_CODE",
       );
     }
-    if (err.constraint === "gemstones_gemstone_type_check" || err.code === "23514") {
+    if (
+      err.constraint === "gemstones_gemstone_type_check" ||
+      err.code === "23514"
+    ) {
       throw new ValidationError(
         "Invalid gemstone type. Must be PRECIOUS, SEMI_PRECIOUS, or ORGANIC_PEARL",
         [{ name: "gemstoneType", reason: "Invalid gemstone type enumeration" }],

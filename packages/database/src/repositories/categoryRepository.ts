@@ -86,7 +86,14 @@ export async function createCategory(
       VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING id, organization_id, code, name, description, is_active, created_at, updated_at;
       `,
-      [id, data.organizationId, data.code, data.name, data.description ?? null, isActive],
+      [
+        id,
+        data.organizationId,
+        data.code,
+        data.name,
+        data.description ?? null,
+        isActive,
+      ],
     );
 
     const row = result.rows[0];
@@ -198,7 +205,14 @@ export async function createSubcategory(
       VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING id, category_id, code, name, description, is_active, created_at, updated_at;
       `,
-      [id, data.categoryId, data.code, data.name, data.description ?? null, isActive],
+      [
+        id,
+        data.categoryId,
+        data.code,
+        data.name,
+        data.description ?? null,
+        isActive,
+      ],
     );
 
     const row = result.rows[0];
@@ -208,7 +222,10 @@ export async function createSubcategory(
 
     return mapRowToSubcategory(row);
   } catch (err: any) {
-    if (err.constraint === "uq_subcategories_cat_code" || err.code === "23505") {
+    if (
+      err.constraint === "uq_subcategories_cat_code" ||
+      err.code === "23505"
+    ) {
       throw new ConflictError(
         `Subcategory with code '${data.code}' already exists in this category`,
         "ERR_DUPLICATE_SUBCATEGORY_CODE",

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2026-11-06
 
 ### Added
+
 - **Master Data Taxonomy Tree (`FEAT-TAX-01`)**:
   - Implemented product classification hierarchy across `categories` (Entity 10) and `subcategories` (Entity 11).
   - Added recursive tree aggregation endpoint `GET /api/v1/taxonomy/tree`.
@@ -40,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-11-06
 
 ### Added
+
 - **Monorepo Foundation & Build Tooling (`FEAT-FOUND-01`)**:
   - Initialized pnpm monorepo with workspace packages (`@jewelcore/shared`, `@jewelcore/database`, `@jewelcore/api`, `@jewelcore/worker`, `apps/web`).
   - Configured Turborepo, TypeScript, ESLint, Prettier, and Vitest test runners.

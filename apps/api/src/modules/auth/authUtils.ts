@@ -2,7 +2,8 @@ import * as argon2 from "@node-rs/argon2";
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET ?? "jewelcore_super_secret_jwt_key_at_least_32_characters_long!",
+  process.env.JWT_SECRET ??
+    "jewelcore_super_secret_jwt_key_at_least_32_characters_long!",
 );
 
 const ACCESS_TOKEN_EXPIRY = "15m";

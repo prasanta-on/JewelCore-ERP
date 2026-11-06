@@ -97,7 +97,15 @@ export async function createMaterial(
       VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING id, organization_id, code, name, base_metal_type, is_precious, is_active, created_at, updated_at;
       `,
-      [id, data.organizationId, data.code, data.name, data.baseMetalType, isPrecious, isActive],
+      [
+        id,
+        data.organizationId,
+        data.code,
+        data.name,
+        data.baseMetalType,
+        isPrecious,
+        isActive,
+      ],
     );
 
     const row = result.rows[0];
@@ -211,9 +219,10 @@ export async function createPurity(
   const executor = clientOverride ?? getPool();
   const id = data.id ?? uuidv7();
   const isActive = data.isActive ?? true;
-  const purityRatio = data.purityRatio !== undefined
-    ? data.purityRatio
-    : Number((data.purityPercentage / 100).toFixed(4));
+  const purityRatio =
+    data.purityRatio !== undefined
+      ? data.purityRatio
+      : Number((data.purityPercentage / 100).toFixed(4));
 
   try {
     const result = await executor.query<PurityRow>(
@@ -244,16 +253,28 @@ export async function createPurity(
 
     return mapRowToPurity(row);
   } catch (err: any) {
-    if (err.constraint === "uq_purities_material_code" || err.code === "23505") {
+    if (
+      err.constraint === "uq_purities_material_code" ||
+      err.code === "23505"
+    ) {
       throw new ConflictError(
         `Purity with code '${data.code}' already exists for this material`,
         "ERR_DUPLICATE_PURITY_CODE",
       );
     }
-    if (err.constraint === "chk_purities_percentage_range" || err.constraint === "chk_purities_ratio_range") {
-      throw new ValidationError("Purity percentage must be between 0.0000 and 100.0000", [
-        { name: "purityPercentage", reason: "Value must be between 0.0000 and 100.0000" },
-      ]);
+    if (
+      err.constraint === "chk_purities_percentage_range" ||
+      err.constraint === "chk_purities_ratio_range"
+    ) {
+      throw new ValidationError(
+        "Purity percentage must be between 0.0000 and 100.0000",
+        [
+          {
+            name: "purityPercentage",
+            reason: "Value must be between 0.0000 and 100.0000",
+          },
+        ],
+      );
     }
     throw err;
   }
@@ -331,7 +352,8 @@ export async function listPurities(
     conditions.push(`p.is_active = $${values.length}`);
   }
 
-  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const whereClause =
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
   const query = `
     SELECT p.id, p.material_id, p.code, p.name, p.karatage, p.purity_percentage, p.purity_ratio, p.hallmark_code, p.is_active, p.created_at, p.updated_at

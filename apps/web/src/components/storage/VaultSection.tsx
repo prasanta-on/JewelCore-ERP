@@ -45,7 +45,9 @@ export function VaultSection({ vault }: VaultSectionProps) {
       >
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <span style={{ fontSize: "1.2rem", fontWeight: 700 }}>{vault.name}</span>
+            <span style={{ fontSize: "1.2rem", fontWeight: 700 }}>
+              {vault.name}
+            </span>
             <span
               style={{
                 fontSize: "0.75rem",
@@ -58,12 +60,22 @@ export function VaultSection({ vault }: VaultSectionProps) {
               {vault.code}
             </span>
           </div>
-          <div style={{ fontSize: "0.8rem", color: "#94a3b8", marginTop: "2px" }}>
-            Type: {vault.vaultType} • Required Clearance: {vault.accessLevelRequired}
+          <div
+            style={{ fontSize: "0.8rem", color: "#94a3b8", marginTop: "2px" }}
+          >
+            Type: {vault.vaultType} • Required Clearance:{" "}
+            {vault.accessLevelRequired}
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: "1.5rem", fontSize: "0.85rem", color: "#cbd5e1" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "1.5rem",
+            fontSize: "0.85rem",
+            color: "#cbd5e1",
+          }}
+        >
           <div>
             <strong>{totalLockers}</strong> Lockers
           </div>
@@ -71,7 +83,8 @@ export function VaultSection({ vault }: VaultSectionProps) {
             <strong>{totalCompartments}</strong> Compartments
           </div>
           <div>
-            <strong style={{ color: "#38bdf8" }}>{totalPieces}</strong> Active Pieces
+            <strong style={{ color: "#38bdf8" }}>{totalPieces}</strong> Active
+            Pieces
           </div>
         </div>
       </div>
@@ -79,7 +92,14 @@ export function VaultSection({ vault }: VaultSectionProps) {
       {/* Lockers Inside Vault */}
       <div style={{ padding: "1.25rem" }}>
         {vault.lockers.length === 0 ? (
-          <div style={{ color: "#94a3b8", fontSize: "0.9rem", fontStyle: "italic", textAlign: "center" }}>
+          <div
+            style={{
+              color: "#94a3b8",
+              fontSize: "0.9rem",
+              fontStyle: "italic",
+              textAlign: "center",
+            }}
+          >
             No lockers provisioned inside this vault.
           </div>
         ) : (

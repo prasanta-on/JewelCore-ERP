@@ -33,7 +33,10 @@ describe("Suppliers Repository Integration Tests (FEAT-PROC-01)", () => {
   });
 
   afterAll(async () => {
-    await query("DELETE FROM suppliers WHERE organization_id IN ($1, $2);", [testOrg1Id, testOrg2Id]);
+    await query("DELETE FROM suppliers WHERE organization_id IN ($1, $2);", [
+      testOrg1Id,
+      testOrg2Id,
+    ]);
     await query("DELETE FROM organizations WHERE code LIKE 'SUP_REPO_%';");
     await closePool();
   });
@@ -116,7 +119,9 @@ describe("Suppliers Repository Integration Tests (FEAT-PROC-01)", () => {
 
     // Updating non-existent supplier throws NotFoundError
     await expect(
-      updateSupplier("0192e301-7000-7000-8000-000000000099", { name: "Non-Existent" }),
+      updateSupplier("0192e301-7000-7000-8000-000000000099", {
+        name: "Non-Existent",
+      }),
     ).rejects.toThrow(NotFoundError);
   });
 
@@ -126,6 +131,8 @@ describe("Suppliers Repository Integration Tests (FEAT-PROC-01)", () => {
       isActive: true,
     });
     expect(activeList.length).toBeGreaterThanOrEqual(2);
-    expect(activeList.every((s) => s.organizationId === testOrg1Id && s.isActive)).toBe(true);
+    expect(
+      activeList.every((s) => s.organizationId === testOrg1Id && s.isActive),
+    ).toBe(true);
   });
 });

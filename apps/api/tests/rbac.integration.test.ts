@@ -11,7 +11,10 @@ import {
   assignRoleToUser,
 } from "@jewelcore/database";
 import { signAccessToken } from "../src/modules/auth/authUtils.js";
-import { authenticate, requirePermission } from "../src/common/authMiddleware.js";
+import {
+  authenticate,
+  requirePermission,
+} from "../src/common/authMiddleware.js";
 
 describe("IAM RBAC Roles & Granular Permissions Endpoints (FEAT-IAM-03)", () => {
   // Register protected test endpoints via the configureRoutes hook before notFoundHandler
@@ -21,7 +24,9 @@ describe("IAM RBAC Roles & Granular Permissions Endpoints (FEAT-IAM-03)", () => 
       authenticate,
       requirePermission("inventory:transfer"),
       (_req, res) => {
-        res.status(200).json({ message: "Inventory transfer authorized and executed" });
+        res
+          .status(200)
+          .json({ message: "Inventory transfer authorized and executed" });
       },
     );
 
@@ -84,7 +89,9 @@ describe("IAM RBAC Roles & Granular Permissions Endpoints (FEAT-IAM-03)", () => 
   });
 
   afterAll(async () => {
-    await query("DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'rbac_%@jewelcore.local');");
+    await query(
+      "DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'rbac_%@jewelcore.local');",
+    );
     await query("DELETE FROM users WHERE email LIKE 'rbac_%@jewelcore.local';");
     await query("DELETE FROM roles WHERE organization_id = $1;", [testOrgId]);
     await query("DELETE FROM organizations WHERE id = $1;", [testOrgId]);
@@ -99,7 +106,9 @@ describe("IAM RBAC Roles & Granular Permissions Endpoints (FEAT-IAM-03)", () => 
         .send({});
 
       expect(res.status).toBe(200);
-      expect(res.body.message).toBe("Inventory transfer authorized and executed");
+      expect(res.body.message).toBe(
+        "Inventory transfer authorized and executed",
+      );
     });
   });
 
@@ -137,9 +146,7 @@ describe("IAM RBAC Roles & Granular Permissions Endpoints (FEAT-IAM-03)", () => 
         permissionCodes: ["sales:invoice", "inventory:view"],
       };
 
-      const res = await request(app)
-        .post("/api/v1/iam/roles")
-        .send(payload);
+      const res = await request(app).post("/api/v1/iam/roles").send(payload);
 
       expect(res.status).toBe(201);
       expect(res.body.data.code).toBe("CUSTOM_FLOOR_SUPERVISOR");
@@ -153,9 +160,7 @@ describe("IAM RBAC Roles & Granular Permissions Endpoints (FEAT-IAM-03)", () => 
         name: "Duplicate Supervisor",
       };
 
-      const res = await request(app)
-        .post("/api/v1/iam/roles")
-        .send(payload);
+      const res = await request(app).post("/api/v1/iam/roles").send(payload);
 
       expect(res.status).toBe(409);
       expect(res.body.code).toBe("ERR_DUPLICATE_ROLE_CODE");
@@ -170,7 +175,9 @@ describe("IAM RBAC Roles & Granular Permissions Endpoints (FEAT-IAM-03)", () => 
 
       expect(res.status).toBe(200);
       expect(res.body.data.userId).toBe(testUserId);
-      expect(res.body.data.roles.some((r: any) => r.code === "STORE_MANAGER")).toBe(true);
+      expect(
+        res.body.data.roles.some((r: any) => r.code === "STORE_MANAGER"),
+      ).toBe(true);
     });
   });
 });

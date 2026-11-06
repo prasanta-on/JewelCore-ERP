@@ -1,8 +1,9 @@
 import type { MigrationDefinition } from "../migrator.js";
 
-export const migration00007CreateTaxonomyMaterialsAndPurities: MigrationDefinition = {
-  name: "00007_create_taxonomy_materials_and_purities",
-  up: `
+export const migration00007CreateTaxonomyMaterialsAndPurities: MigrationDefinition =
+  {
+    name: "00007_create_taxonomy_materials_and_purities",
+    up: `
     -- 1. Materials table (Entity 12)
     CREATE TABLE IF NOT EXISTS materials (
       id UUID PRIMARY KEY,
@@ -41,8 +42,8 @@ export const migration00007CreateTaxonomyMaterialsAndPurities: MigrationDefiniti
 
     CREATE INDEX IF NOT EXISTS idx_purities_material_id ON purities(material_id);
   `,
-  down: `
+    down: `
     DROP TABLE IF EXISTS purities CASCADE;
     DROP TABLE IF EXISTS materials CASCADE;
   `,
-};
+  };

@@ -56,7 +56,11 @@ export class ValidationError extends DomainError {
 }
 
 export class BadRequestError extends DomainError {
-  constructor(message: string, code: string = "ERR_BAD_REQUEST", details?: unknown) {
+  constructor(
+    message: string,
+    code: string = "ERR_BAD_REQUEST",
+    details?: unknown,
+  ) {
     super(message, code, 400, details);
     this.name = "BadRequestError";
   }
@@ -100,7 +104,11 @@ export class ConflictError extends DomainError {
 }
 
 export class UnprocessableEntityError extends DomainError {
-  constructor(message: string, code: string = "ERR_UNPROCESSABLE_ENTITY", details?: unknown) {
+  constructor(
+    message: string,
+    code: string = "ERR_UNPROCESSABLE_ENTITY",
+    details?: unknown,
+  ) {
     super(message, code, 422, details);
     this.name = "UnprocessableEntityError";
   }
@@ -152,4 +160,3 @@ export * from "./iam/index.js";
 export * from "./storage/index.js";
 export * from "./taxonomy/index.js";
 export * from "./procurement/index.js";
-

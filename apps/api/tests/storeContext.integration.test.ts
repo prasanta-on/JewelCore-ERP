@@ -289,7 +289,9 @@ describe("Store-Context Isolation & Memberships (FEAT-IAM-04 / INV-11)", () => {
     expect(storeRes.body.data.isDefault).toBe(true);
 
     // 3. Query user stores via IAM
-    const listRes = await request(app).get(`/api/v1/iam/users/${newUser.id}/stores`);
+    const listRes = await request(app).get(
+      `/api/v1/iam/users/${newUser.id}/stores`,
+    );
     expect(listRes.status).toBe(200);
     expect(listRes.body.data.length).toBe(1);
     expect(listRes.body.data[0].storeId).toBe(store003Id);

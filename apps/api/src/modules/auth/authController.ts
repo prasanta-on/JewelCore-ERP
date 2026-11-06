@@ -67,7 +67,9 @@ export async function meHandler(
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      throw new UnauthorizedError("Authorization header with Bearer token is required");
+      throw new UnauthorizedError(
+        "Authorization header with Bearer token is required",
+      );
     }
 
     const token = authHeader.substring(7);
@@ -91,7 +93,9 @@ export async function myStoresHandler(
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      throw new UnauthorizedError("Authorization header with Bearer token is required");
+      throw new UnauthorizedError(
+        "Authorization header with Bearer token is required",
+      );
     }
 
     const token = authHeader.substring(7);

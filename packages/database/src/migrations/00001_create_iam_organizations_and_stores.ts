@@ -1,8 +1,9 @@
 import type { MigrationDefinition } from "../migrator.js";
 
-export const migration00001CreateIamOrganizationsAndStores: MigrationDefinition = {
-  name: "00001_create_iam_organizations_and_stores",
-  up: `
+export const migration00001CreateIamOrganizationsAndStores: MigrationDefinition =
+  {
+    name: "00001_create_iam_organizations_and_stores",
+    up: `
     CREATE TABLE IF NOT EXISTS organizations (
       id UUID PRIMARY KEY,
       code VARCHAR(50) NOT NULL UNIQUE,
@@ -47,8 +48,8 @@ export const migration00001CreateIamOrganizationsAndStores: MigrationDefinition 
     CREATE INDEX IF NOT EXISTS idx_stores_org_id ON stores(organization_id);
     CREATE INDEX IF NOT EXISTS idx_stores_code ON stores(code);
   `,
-  down: `
+    down: `
     DROP TABLE IF EXISTS stores CASCADE;
     DROP TABLE IF EXISTS organizations CASCADE;
   `,
-};
+  };

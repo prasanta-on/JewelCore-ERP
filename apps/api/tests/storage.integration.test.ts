@@ -209,7 +209,7 @@ describe("Physical Storage Hierarchy API Endpoints (FEAT-STOR-01 / INV-05, INV-1
       .set("x-store-id", store001Id)
       .send({
         vaultId: createdVaultId, // Belongs to STORE001
-        storeId: store002Id,    // Mismatched STORE002!
+        storeId: store002Id, // Mismatched STORE002!
         code: "API_LCK_MISMATCH",
         name: "Mismatched Locker",
         lockerNumber: "LCK-ERR",
@@ -227,7 +227,7 @@ describe("Physical Storage Hierarchy API Endpoints (FEAT-STOR-01 / INV-05, INV-1
       .set("x-store-id", store001Id)
       .send({
         lockerId: createdLockerId, // Belongs to STORE001
-        storeId: store002Id,      // Mismatched STORE002!
+        storeId: store002Id, // Mismatched STORE002!
         code: "API_CMP_MISMATCH",
         name: "Mismatched Compartment",
         compartmentNumber: "CMP-ERR",

@@ -120,7 +120,9 @@ export async function loginService(input: LoginInput): Promise<AuthTokens> {
   };
 }
 
-export async function getCurrentUserService(userId: string): Promise<UserPublic> {
+export async function getCurrentUserService(
+  userId: string,
+): Promise<UserPublic> {
   const user = await getUserById(userId);
   if (!user || !user.isActive) {
     throw new NotFoundError("User", userId);

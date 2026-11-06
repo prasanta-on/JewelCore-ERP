@@ -74,7 +74,9 @@ describe("Gemstone Master Registry API Endpoints (FEAT-TAX-03)", () => {
   });
 
   afterAll(async () => {
-    await query("DELETE FROM gemstones WHERE organization_id = $1;", [testOrgId]);
+    await query("DELETE FROM gemstones WHERE organization_id = $1;", [
+      testOrgId,
+    ]);
     await query("DELETE FROM users WHERE email LIKE 'gem_%@jewelcore.local';");
     await query("DELETE FROM organizations WHERE code LIKE 'GEM_API_%';");
     await closePool();

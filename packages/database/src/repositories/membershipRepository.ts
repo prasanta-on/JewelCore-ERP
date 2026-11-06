@@ -410,7 +410,6 @@ export async function assignRoleToStoreMembership(
   return mapRowToMembershipRole(row);
 }
 
-
 /**
  * Retrieves all roles assigned to a store membership.
  */

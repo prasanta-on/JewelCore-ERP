@@ -32,7 +32,9 @@ export async function createOrganizationService(
   return createOrganization(input);
 }
 
-export async function getOrganizationService(id: string): Promise<Organization> {
+export async function getOrganizationService(
+  id: string,
+): Promise<Organization> {
   const org = await getOrganizationById(id);
   if (!org) {
     throw new NotFoundError("Organization", id);
@@ -44,7 +46,9 @@ export async function listOrganizationsService(): Promise<Organization[]> {
   return listOrganizations();
 }
 
-export async function createStoreService(input: CreateStoreInput): Promise<Store> {
+export async function createStoreService(
+  input: CreateStoreInput,
+): Promise<Store> {
   // 1. Verify parent organization exists
   const parentOrg = await getOrganizationById(input.organizationId);
   if (!parentOrg) {
@@ -72,7 +76,9 @@ export async function getStoreService(id: string): Promise<Store> {
   return store;
 }
 
-export async function listStoresService(organizationId?: string): Promise<Store[]> {
+export async function listStoresService(
+  organizationId?: string,
+): Promise<Store[]> {
   if (organizationId) {
     return listStoresByOrganization(organizationId);
   }

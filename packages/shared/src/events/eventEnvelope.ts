@@ -92,11 +92,9 @@ export const domainEventEnvelopeSchema = z.object({
     .number()
     .int()
     .positive({ message: "Event version must be a positive integer >= 1" }),
-  occurredAt: z
-    .string()
-    .datetime({
-      message: "occurredAt must be a valid ISO 8601 UTC timestamp string",
-    }),
+  occurredAt: z.string().datetime({
+    message: "occurredAt must be a valid ISO 8601 UTC timestamp string",
+  }),
   aggregateType: z
     .string()
     .min(1)
@@ -110,12 +108,10 @@ export const domainEventEnvelopeSchema = z.object({
     .string()
     .uuid({ message: "storeId must be a valid UUID" })
     .optional(),
-  correlationId: z
-    .string()
-    .regex(correlationIdRegex, {
-      message:
-        "correlationId must be 1-64 characters matching /^[a-zA-Z0-9_-]+$/",
-    }),
+  correlationId: z.string().regex(correlationIdRegex, {
+    message:
+      "correlationId must be 1-64 characters matching /^[a-zA-Z0-9_-]+$/",
+  }),
   causationId: z.string().max(64).optional(),
   payload: z.record(z.unknown()),
   metadata: eventMetadataSchema.default({

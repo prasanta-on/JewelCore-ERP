@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { authenticate, requirePermission } from "../../common/authMiddleware.js";
+import {
+  authenticate,
+  requirePermission,
+} from "../../common/authMiddleware.js";
 import { requireStoreContext } from "../../common/storeContextMiddleware.js";
 import {
   createVaultHandler,
@@ -23,16 +26,28 @@ export function createStorageRouter(): Router {
   router.get("/hierarchy", getHierarchyHandler);
 
   // Vault Endpoints (Entity 32)
-  router.post("/vaults", requirePermission("storage:write"), createVaultHandler);
+  router.post(
+    "/vaults",
+    requirePermission("storage:write"),
+    createVaultHandler,
+  );
   router.get("/vaults", listVaultsHandler);
   router.get("/vaults/:id", getVaultHandler);
 
   // Locker Endpoints (Entity 33)
-  router.post("/lockers", requirePermission("storage:write"), createLockerHandler);
+  router.post(
+    "/lockers",
+    requirePermission("storage:write"),
+    createLockerHandler,
+  );
   router.get("/lockers/:id", getLockerHandler);
 
   // Compartment Endpoints (Entity 34)
-  router.post("/compartments", requirePermission("storage:write"), createCompartmentHandler);
+  router.post(
+    "/compartments",
+    requirePermission("storage:write"),
+    createCompartmentHandler,
+  );
   router.get("/compartments/:id", getCompartmentHandler);
 
   return router;

@@ -93,9 +93,18 @@ describe("SKU & Gemstone Specs Repository Integration Tests (FEAT-TAX-05)", () =
 
   afterAll(async () => {
     await query("DELETE FROM product_gemstone_specs;");
-    await query("DELETE FROM product_skus WHERE organization_id IN ($1, $2);", [testOrg1Id, testOrg2Id]);
-    await query("DELETE FROM products WHERE organization_id IN ($1, $2);", [testOrg1Id, testOrg2Id]);
-    await query("DELETE FROM gemstones WHERE organization_id IN ($1, $2);", [testOrg1Id, testOrg2Id]);
+    await query("DELETE FROM product_skus WHERE organization_id IN ($1, $2);", [
+      testOrg1Id,
+      testOrg2Id,
+    ]);
+    await query("DELETE FROM products WHERE organization_id IN ($1, $2);", [
+      testOrg1Id,
+      testOrg2Id,
+    ]);
+    await query("DELETE FROM gemstones WHERE organization_id IN ($1, $2);", [
+      testOrg1Id,
+      testOrg2Id,
+    ]);
     await query("DELETE FROM organizations WHERE code LIKE 'SKU_TEST_%';");
     await closePool();
   });

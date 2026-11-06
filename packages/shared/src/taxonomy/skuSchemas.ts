@@ -46,14 +46,20 @@ export const createProductSkuSchema = z
       .trim()
       .min(1, "SKU code is required")
       .max(50, "SKU code must not exceed 50 characters")
-      .regex(/^[A-Z0-9_-]+$/i, "SKU code must contain only alphanumeric characters, dashes, and underscores")
+      .regex(
+        /^[A-Z0-9_-]+$/i,
+        "SKU code must contain only alphanumeric characters, dashes, and underscores",
+      )
       .optional(),
     code: z
       .string()
       .trim()
       .min(1, "SKU code is required")
       .max(50, "SKU code must not exceed 50 characters")
-      .regex(/^[A-Z0-9_-]+$/i, "SKU code must contain only alphanumeric characters, dashes, and underscores")
+      .regex(
+        /^[A-Z0-9_-]+$/i,
+        "SKU code must contain only alphanumeric characters, dashes, and underscores",
+      )
       .optional(),
     variantName: z
       .string()
@@ -71,10 +77,14 @@ export const createProductSkuSchema = z
     attributesJson: z.record(z.any()).default({}),
     isActive: z.boolean().default(true),
   })
-  .refine((data) => data.targetGrossWeightGrams >= data.targetMetalWeightGrams, {
-    message: "Target gross weight must be greater than or equal to target net metal weight",
-    path: ["targetGrossWeightGrams"],
-  })
+  .refine(
+    (data) => data.targetGrossWeightGrams >= data.targetMetalWeightGrams,
+    {
+      message:
+        "Target gross weight must be greater than or equal to target net metal weight",
+      path: ["targetGrossWeightGrams"],
+    },
+  )
   .transform((data) => {
     const finalCode = data.skuCode ?? data.code;
     if (!finalCode) {
@@ -126,4 +136,6 @@ export const createProductGemstoneSpecSchema = z.object({
   isPrimary: z.boolean().default(false),
 });
 
-export type CreateProductGemstoneSpecInput = z.infer<typeof createProductGemstoneSpecSchema>;
+export type CreateProductGemstoneSpecInput = z.infer<
+  typeof createProductGemstoneSpecSchema
+>;

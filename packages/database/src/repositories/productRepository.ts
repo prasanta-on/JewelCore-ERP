@@ -119,16 +119,28 @@ export async function createProduct(
       );
     }
     if (err.constraint === "products_category_id_fkey") {
-      throw new UnprocessableEntityError("Referenced category does not exist", "ERR_CATEGORY_NOT_FOUND");
+      throw new UnprocessableEntityError(
+        "Referenced category does not exist",
+        "ERR_CATEGORY_NOT_FOUND",
+      );
     }
     if (err.constraint === "products_subcategory_id_fkey") {
-      throw new UnprocessableEntityError("Referenced subcategory does not exist", "ERR_SUBCATEGORY_NOT_FOUND");
+      throw new UnprocessableEntityError(
+        "Referenced subcategory does not exist",
+        "ERR_SUBCATEGORY_NOT_FOUND",
+      );
     }
     if (err.constraint === "products_material_id_fkey") {
-      throw new UnprocessableEntityError("Referenced material does not exist", "ERR_MATERIAL_NOT_FOUND");
+      throw new UnprocessableEntityError(
+        "Referenced material does not exist",
+        "ERR_MATERIAL_NOT_FOUND",
+      );
     }
     if (err.constraint === "products_default_purity_id_fkey") {
-      throw new UnprocessableEntityError("Referenced purity standard does not exist", "ERR_PURITY_NOT_FOUND");
+      throw new UnprocessableEntityError(
+        "Referenced purity standard does not exist",
+        "ERR_PURITY_NOT_FOUND",
+      );
     }
     throw err;
   }

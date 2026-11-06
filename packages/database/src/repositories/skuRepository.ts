@@ -66,7 +66,9 @@ export function mapRowToProductSku(row: ProductSkuRow): ProductSku {
   };
 }
 
-export function mapRowToGemstoneSpec(row: ProductGemstoneSpecRow): ProductGemstoneSpec {
+export function mapRowToGemstoneSpec(
+  row: ProductGemstoneSpecRow,
+): ProductGemstoneSpec {
   return {
     id: row.id,
     productSkuId: row.product_sku_id,
@@ -110,13 +112,17 @@ export async function createProductSku(
   // If trackingType not supplied, inherit from product style
   let trackingType = data.trackingType;
   if (!trackingType) {
-    const prodRes = await executor.query<{ default_tracking_type: TrackingType }>(
-      `SELECT default_tracking_type FROM products WHERE id = $1;`,
-      [data.productId],
-    );
+    const prodRes = await executor.query<{
+      default_tracking_type: TrackingType;
+    }>(`SELECT default_tracking_type FROM products WHERE id = $1;`, [
+      data.productId,
+    ]);
     const prodRow = prodRes.rows[0];
     if (!prodRow) {
-      throw new UnprocessableEntityError("Referenced product style does not exist", "ERR_PRODUCT_NOT_FOUND");
+      throw new UnprocessableEntityError(
+        "Referenced product style does not exist",
+        "ERR_PRODUCT_NOT_FOUND",
+      );
     }
     trackingType = prodRow.default_tracking_type;
   }
@@ -161,7 +167,10 @@ export async function createProductSku(
 
     return mapRowToProductSku(row);
   } catch (err: any) {
-    if (err.constraint === "uq_product_skus_org_sku_code" || err.code === "23505") {
+    if (
+      err.constraint === "uq_product_skus_org_sku_code" ||
+      err.code === "23505"
+    ) {
       throw new ConflictError(
         `SKU with code '${data.skuCode}' already exists in this organization`,
         "ERR_DUPLICATE_SKU_CODE",
@@ -174,10 +183,16 @@ export async function createProductSku(
       );
     }
     if (err.constraint === "product_skus_product_id_fkey") {
-      throw new UnprocessableEntityError("Referenced product style does not exist", "ERR_PRODUCT_NOT_FOUND");
+      throw new UnprocessableEntityError(
+        "Referenced product style does not exist",
+        "ERR_PRODUCT_NOT_FOUND",
+      );
     }
     if (err.constraint === "product_skus_target_purity_id_fkey") {
-      throw new UnprocessableEntityError("Referenced purity standard does not exist", "ERR_PURITY_NOT_FOUND");
+      throw new UnprocessableEntityError(
+        "Referenced purity standard does not exist",
+        "ERR_PURITY_NOT_FOUND",
+      );
     }
     throw err;
   }
@@ -292,19 +307,27 @@ export async function updateProductSku(
 
   const existing = await getProductSkuById(id, executor);
   if (!existing) {
-    throw new NotFoundError(`Product SKU with ID '${id}' not found`, "ERR_SKU_NOT_FOUND");
+    throw new NotFoundError(
+      `Product SKU with ID '${id}' not found`,
+      "ERR_SKU_NOT_FOUND",
+    );
   }
 
   // INV-06: Strict immutability check for tracking_type
-  if (data.trackingType !== undefined && data.trackingType !== existing.trackingType) {
+  if (
+    data.trackingType !== undefined &&
+    data.trackingType !== existing.trackingType
+  ) {
     throw new UnprocessableEntityError(
       "Tracking type is immutable once SKU is created",
       "ERR_TRACKING_TYPE_IMMUTABLE",
     );
   }
 
-  const updatedGross = data.targetGrossWeightGrams ?? existing.targetGrossWeightGrams;
-  const updatedMetal = data.targetMetalWeightGrams ?? existing.targetMetalWeightGrams;
+  const updatedGross =
+    data.targetGrossWeightGrams ?? existing.targetGrossWeightGrams;
+  const updatedMetal =
+    data.targetMetalWeightGrams ?? existing.targetMetalWeightGrams;
 
   if (updatedGross < updatedMetal) {
     throw new UnprocessableEntityError(
@@ -361,7 +384,10 @@ export async function updateProductSku(
     const result = await executor.query<ProductSkuRow>(query, values);
     const row = result.rows[0];
     if (!row) {
-      throw new NotFoundError(`Product SKU with ID '${id}' not found`, "ERR_SKU_NOT_FOUND");
+      throw new NotFoundError(
+        `Product SKU with ID '${id}' not found`,
+        "ERR_SKU_NOT_FOUND",
+      );
     }
     return mapRowToProductSku(row);
   } catch (err: any) {
@@ -372,7 +398,10 @@ export async function updateProductSku(
       );
     }
     if (err.constraint === "product_skus_target_purity_id_fkey") {
-      throw new UnprocessableEntityError("Referenced purity standard does not exist", "ERR_PURITY_NOT_FOUND");
+      throw new UnprocessableEntityError(
+        "Referenced purity standard does not exist",
+        "ERR_PURITY_NOT_FOUND",
+      );
     }
     throw err;
   }
@@ -443,10 +472,16 @@ export async function createProductGemstoneSpec(
       );
     }
     if (err.constraint === "product_gemstone_specs_product_sku_id_fkey") {
-      throw new UnprocessableEntityError("Referenced SKU does not exist", "ERR_SKU_NOT_FOUND");
+      throw new UnprocessableEntityError(
+        "Referenced SKU does not exist",
+        "ERR_SKU_NOT_FOUND",
+      );
     }
     if (err.constraint === "product_gemstone_specs_gemstone_id_fkey") {
-      throw new UnprocessableEntityError("Referenced gemstone does not exist", "ERR_GEMSTONE_NOT_FOUND");
+      throw new UnprocessableEntityError(
+        "Referenced gemstone does not exist",
+        "ERR_GEMSTONE_NOT_FOUND",
+      );
     }
     throw err;
   }

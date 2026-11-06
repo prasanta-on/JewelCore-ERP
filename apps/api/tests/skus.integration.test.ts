@@ -132,11 +132,21 @@ describe("Commercial SKUs & Gemstone Specs API Endpoints (FEAT-TAX-05)", () => {
 
   afterAll(async () => {
     await query("DELETE FROM product_gemstone_specs;");
-    await query("DELETE FROM product_skus WHERE organization_id = $1;", [testOrgId]);
-    await query("DELETE FROM products WHERE organization_id = $1;", [testOrgId]);
-    await query("DELETE FROM gemstones WHERE organization_id = $1;", [testOrgId]);
-    await query("DELETE FROM materials WHERE organization_id = $1;", [testOrgId]);
-    await query("DELETE FROM categories WHERE organization_id = $1;", [testOrgId]);
+    await query("DELETE FROM product_skus WHERE organization_id = $1;", [
+      testOrgId,
+    ]);
+    await query("DELETE FROM products WHERE organization_id = $1;", [
+      testOrgId,
+    ]);
+    await query("DELETE FROM gemstones WHERE organization_id = $1;", [
+      testOrgId,
+    ]);
+    await query("DELETE FROM materials WHERE organization_id = $1;", [
+      testOrgId,
+    ]);
+    await query("DELETE FROM categories WHERE organization_id = $1;", [
+      testOrgId,
+    ]);
     await query("DELETE FROM users WHERE email LIKE 'sku_%@jewelcore.local';");
     await query("DELETE FROM organizations WHERE code LIKE 'SKU_API_%';");
     await closePool();
@@ -160,11 +170,16 @@ describe("Commercial SKUs & Gemstone Specs API Endpoints (FEAT-TAX-05)", () => {
     expect(res.status).toBe(201);
     expect(res.body.data.id).toBeDefined();
     expect(res.body.data.skuCode).toBe("SKU-SOL-18K-075-SZ7");
-    expect(res.body.data.variantName).toBe("18K Gold Solitaire Ring 0.75ct Size 7");
+    expect(res.body.data.variantName).toBe(
+      "18K Gold Solitaire Ring 0.75ct Size 7",
+    );
     expect(res.body.data.targetGrossWeightGrams).toBe(5.25);
     expect(res.body.data.targetMetalWeightGrams).toBe(5.1);
     expect(res.body.data.trackingType).toBe("SERIALIZED");
-    expect(res.body.data.attributesJson).toEqual({ ringSize: 7, metalColor: "Yellow" });
+    expect(res.body.data.attributesJson).toEqual({
+      ringSize: 7,
+      metalColor: "Yellow",
+    });
     createdSkuId = res.body.data.id;
   });
 

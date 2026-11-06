@@ -16,7 +16,9 @@ export function StorageDirectoryView({
   storeCode = "STORE-01",
   vaults,
 }: StorageDirectoryViewProps) {
-  const [filterStatus, setFilterStatus] = useState<CompartmentOccupancyStatus | "ALL">("ALL");
+  const [filterStatus, setFilterStatus] = useState<
+    CompartmentOccupancyStatus | "ALL"
+  >("ALL");
 
   // Calculate summary metrics across the whole store
   const totalVaults = vaults.length;
@@ -39,7 +41,9 @@ export function StorageDirectoryView({
   }
 
   const overallUtilization =
-    totalCapacity > 0 ? Math.round((totalOccupiedPieces / totalCapacity) * 100) : 0;
+    totalCapacity > 0
+      ? Math.round((totalOccupiedPieces / totalCapacity) * 100)
+      : 0;
 
   // Filter compartments if status filter is applied
   const filteredVaults = vaults.map((vault) => ({
@@ -67,37 +71,55 @@ export function StorageDirectoryView({
         }}
       >
         <div>
-          <h1 style={{ fontSize: "1.75rem", fontWeight: 700, margin: 0, color: "#0f172a" }}>
+          <h1
+            style={{
+              fontSize: "1.75rem",
+              fontWeight: 700,
+              margin: 0,
+              color: "#0f172a",
+            }}
+          >
             Storage Hierarchy Directory
           </h1>
-          <p style={{ margin: "4px 0 0 0", color: "#64748b", fontSize: "0.95rem" }}>
-            Branch: <strong style={{ color: "#334155" }}>{storeName}</strong> ({storeCode})
+          <p
+            style={{
+              margin: "4px 0 0 0",
+              color: "#64748b",
+              fontSize: "0.95rem",
+            }}
+          >
+            Branch: <strong style={{ color: "#334155" }}>{storeName}</strong> (
+            {storeCode})
           </p>
         </div>
 
         {/* Filter Chips */}
         <div style={{ display: "flex", gap: "0.5rem" }}>
-          {(["ALL", "AVAILABLE", "NEAR_CAPACITY", "FULL"] as const).map((status) => {
-            const isSelected = filterStatus === status;
-            return (
-              <button
-                key={status}
-                onClick={() => setFilterStatus(status)}
-                style={{
-                  padding: "0.4rem 0.8rem",
-                  fontSize: "0.8rem",
-                  fontWeight: 600,
-                  borderRadius: "6px",
-                  border: isSelected ? "1px solid #2563eb" : "1px solid #cbd5e1",
-                  backgroundColor: isSelected ? "#eff6ff" : "#ffffff",
-                  color: isSelected ? "#1d4ed8" : "#475569",
-                  cursor: "pointer",
-                }}
-              >
-                {status.replace("_", " ")}
-              </button>
-            );
-          })}
+          {(["ALL", "AVAILABLE", "NEAR_CAPACITY", "FULL"] as const).map(
+            (status) => {
+              const isSelected = filterStatus === status;
+              return (
+                <button
+                  key={status}
+                  onClick={() => setFilterStatus(status)}
+                  style={{
+                    padding: "0.4rem 0.8rem",
+                    fontSize: "0.8rem",
+                    fontWeight: 600,
+                    borderRadius: "6px",
+                    border: isSelected
+                      ? "1px solid #2563eb"
+                      : "1px solid #cbd5e1",
+                    backgroundColor: isSelected ? "#eff6ff" : "#ffffff",
+                    color: isSelected ? "#1d4ed8" : "#475569",
+                    cursor: "pointer",
+                  }}
+                >
+                  {status.replace("_", " ")}
+                </button>
+              );
+            },
+          )}
         </div>
       </div>
 
@@ -124,11 +146,18 @@ export function StorageDirectoryView({
         </div>
         <div style={metricCardStyle}>
           <div style={metricLabelStyle}>Resident Pieces</div>
-          <div style={{ ...metricValueStyle, color: "#2563eb" }}>{totalOccupiedPieces}</div>
+          <div style={{ ...metricValueStyle, color: "#2563eb" }}>
+            {totalOccupiedPieces}
+          </div>
         </div>
         <div style={metricCardStyle}>
           <div style={metricLabelStyle}>Capacity Utilization</div>
-          <div style={{ ...metricValueStyle, color: overallUtilization > 85 ? "#ef4444" : "#10b981" }}>
+          <div
+            style={{
+              ...metricValueStyle,
+              color: overallUtilization > 85 ? "#ef4444" : "#10b981",
+            }}
+          >
             {overallUtilization}%
           </div>
         </div>
@@ -149,7 +178,9 @@ export function StorageDirectoryView({
           No storage vaults configured for this store branch.
         </div>
       ) : (
-        filteredVaults.map((vault) => <VaultSection key={vault.id} vault={vault} />)
+        filteredVaults.map((vault) => (
+          <VaultSection key={vault.id} vault={vault} />
+        ))
       )}
     </div>
   );

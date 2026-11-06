@@ -74,7 +74,9 @@ describe("Suppliers API Endpoints (FEAT-PROC-01)", () => {
   });
 
   afterAll(async () => {
-    await query("DELETE FROM suppliers WHERE organization_id = $1;", [testOrgId]);
+    await query("DELETE FROM suppliers WHERE organization_id = $1;", [
+      testOrgId,
+    ]);
     await query("DELETE FROM users WHERE email LIKE 'proc_%@jewelcore.local';");
     await query("DELETE FROM organizations WHERE code LIKE 'SUP_API_%';");
     await closePool();
@@ -146,7 +148,9 @@ describe("Suppliers API Endpoints (FEAT-PROC-01)", () => {
     expect(res.status).toBe(400);
     expect(res.body.code).toBe("ERR_VALIDATION");
     expect(res.body.invalidParams).toBeDefined();
-    expect(res.body.invalidParams.some((p: any) => p.name === "code")).toBe(true);
+    expect(res.body.invalidParams.some((p: any) => p.name === "code")).toBe(
+      true,
+    );
   });
 
   // Scenario 4: Retrieve Supplier by ID and List with Filter
@@ -166,7 +170,9 @@ describe("Suppliers API Endpoints (FEAT-PROC-01)", () => {
 
     expect(listRes.status).toBe(200);
     expect(listRes.body.data.length).toBeGreaterThanOrEqual(1);
-    expect(listRes.body.data.some((s: any) => s.id === createdSupplierId)).toBe(true);
+    expect(listRes.body.data.some((s: any) => s.id === createdSupplierId)).toBe(
+      true,
+    );
   });
 
   // Scenario 5: Update Supplier Details

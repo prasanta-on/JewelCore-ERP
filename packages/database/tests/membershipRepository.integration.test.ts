@@ -81,7 +81,9 @@ describe("IAM Memberships Repository Integration Tests (INV-11)", () => {
 
   afterAll(async () => {
     // Clean up in cascade order
-    await query("DELETE FROM users WHERE email LIKE 'membership_%@jewelcore.local';");
+    await query(
+      "DELETE FROM users WHERE email LIKE 'membership_%@jewelcore.local';",
+    );
     await query("DELETE FROM stores WHERE code LIKE 'MBR_%';");
     await query("DELETE FROM organizations WHERE code LIKE 'MBR_%';");
     await closePool();
@@ -147,7 +149,10 @@ describe("IAM Memberships Repository Integration Tests (INV-11)", () => {
   });
 
   it("resolves the default store membership correctly", async () => {
-    const defaultStore = await getUserDefaultStoreMembership(testUserId, testOrgId);
+    const defaultStore = await getUserDefaultStoreMembership(
+      testUserId,
+      testOrgId,
+    );
     expect(defaultStore).not.toBeNull();
     expect(defaultStore?.storeId).toBe(storeAId);
     expect(defaultStore?.isDefault).toBe(true);
