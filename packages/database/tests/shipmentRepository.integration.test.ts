@@ -45,25 +45,29 @@ describe("Shipments & Line Items Repository Integration Tests (FEAT-PROC-03)", (
 
     // Clean up any stale data from prior interrupted runs
     await query(
-      "DELETE FROM shipment_items WHERE shipment_id IN (SELECT id FROM shipments WHERE shipment_number LIKE 'SHP-%');",
+      "DELETE FROM shipment_items WHERE shipment_id IN (SELECT id FROM shipments WHERE shipment_number LIKE 'SHP-REPO-%');",
     );
-    await query("DELETE FROM shipments WHERE shipment_number LIKE 'SHP-%';");
     await query(
-      "DELETE FROM goods_receipt_notes WHERE grn_number LIKE 'GRN-SHP-%';",
+      "DELETE FROM shipments WHERE shipment_number LIKE 'SHP-REPO-%';",
     );
-    await query("DELETE FROM product_skus WHERE sku_code LIKE 'SHP-%';");
-    await query("DELETE FROM products WHERE product_code LIKE 'SHP-%';");
-    await query("DELETE FROM purities WHERE code LIKE 'SHP_%';");
-    await query("DELETE FROM materials WHERE code LIKE 'SHP_%';");
-    await query("DELETE FROM categories WHERE code LIKE 'SHP_%';");
-    await query("DELETE FROM suppliers WHERE code LIKE 'SHP_%';");
-    await query("DELETE FROM users WHERE email LIKE 'shp_%@jewelcore.local';");
-    await query("DELETE FROM stores WHERE code = 'SHP_STORE_001';");
-    await query("DELETE FROM organizations WHERE code = 'SHP_TEST_ORG';");
+    await query(
+      "DELETE FROM goods_receipt_notes WHERE grn_number LIKE 'GRN-SHP-REPO-%';",
+    );
+    await query("DELETE FROM product_skus WHERE sku_code LIKE 'SHP-REPO-%';");
+    await query("DELETE FROM products WHERE product_code LIKE 'SHP-REPO-%';");
+    await query("DELETE FROM purities WHERE code LIKE 'SHP_REPO_%';");
+    await query("DELETE FROM materials WHERE code LIKE 'SHP_REPO_%';");
+    await query("DELETE FROM categories WHERE code LIKE 'SHP_REPO_%';");
+    await query("DELETE FROM suppliers WHERE code LIKE 'SHP_REPO_%';");
+    await query(
+      "DELETE FROM users WHERE email LIKE 'shp_repo_%@jewelcore.local';",
+    );
+    await query("DELETE FROM stores WHERE code = 'SHP_REPO_STORE_001';");
+    await query("DELETE FROM organizations WHERE code = 'SHP_REPO_TEST_ORG';");
 
     // 1. Organization
     const org = await createOrganization({
-      code: "SHP_TEST_ORG",
+      code: "SHP_REPO_TEST_ORG",
       name: "Shipment Test Enterprise",
     });
     testOrgId = org.id;
@@ -71,7 +75,7 @@ describe("Shipments & Line Items Repository Integration Tests (FEAT-PROC-03)", (
     // 2. Store
     const store = await createStore({
       organizationId: testOrgId,
-      code: "SHP_STORE_001",
+      code: "SHP_REPO_STORE_001",
       name: "Shipment Intake Store",
       storeType: StoreType.RETAIL_STORE,
       isActive: true,
@@ -81,7 +85,7 @@ describe("Shipments & Line Items Repository Integration Tests (FEAT-PROC-03)", (
     // 3. User
     const user = await createUser({
       organizationId: testOrgId,
-      email: "shp_technician@jewelcore.local",
+      email: "shp_repo_technician@jewelcore.local",
       passwordHash: "$argon2id$v=19$fake",
       firstName: "Shipment",
       lastName: "Technician",
@@ -92,7 +96,7 @@ describe("Shipments & Line Items Repository Integration Tests (FEAT-PROC-03)", (
     // 4. Supplier
     const supplier = await createSupplier({
       organizationId: testOrgId,
-      code: "SHP_SUPP_001",
+      code: "SHP_REPO_SUPP_001",
       name: "Global Diamond Consignment Ltd",
     });
     testSupplierId = supplier.id;
@@ -100,20 +104,20 @@ describe("Shipments & Line Items Repository Integration Tests (FEAT-PROC-03)", (
     // 5. Taxonomy & SKU for line items
     const category = await createCategory({
       organizationId: testOrgId,
-      code: "SHP_CAT_01",
+      code: "SHP_REPO_CAT_01",
       name: "Rings",
     });
 
     const material = await createMaterial({
       organizationId: testOrgId,
-      code: "SHP_GOLD_01",
+      code: "SHP_REPO_GOLD_01",
       name: "Yellow Gold",
       baseMetalType: "AU",
     });
 
     const purity = await createPurity({
       materialId: material.id,
-      code: "SHP_18K",
+      code: "SHP_REPO_18K",
       name: "18 Karat",
       purityPercentage: 75.0,
       purityRatio: 0.75,
@@ -124,7 +128,7 @@ describe("Shipments & Line Items Repository Integration Tests (FEAT-PROC-03)", (
       categoryId: category.id,
       materialId: material.id,
       defaultPurityId: purity.id,
-      productCode: "SHP-RNG-001",
+      productCode: "SHP-REPO-RNG-001",
       name: "Solitaire Diamond Ring",
       defaultTrackingType: "SERIALIZED",
     });
@@ -132,7 +136,7 @@ describe("Shipments & Line Items Repository Integration Tests (FEAT-PROC-03)", (
     const sku = await createProductSku({
       organizationId: testOrgId,
       productId: product.id,
-      skuCode: "SHP-SKU-001",
+      skuCode: "SHP-REPO-SKU-001",
       variantName: "Solitaire Ring 18K Size 7",
       targetPurityId: purity.id,
       targetGrossWeightGrams: 5.5,
@@ -145,7 +149,7 @@ describe("Shipments & Line Items Repository Integration Tests (FEAT-PROC-03)", (
       organizationId: testOrgId,
       storeId: testStoreId,
       supplierId: testSupplierId,
-      grnNumber: "GRN-SHP-OPEN-01",
+      grnNumber: "GRN-SHP-REPO-OPEN-01",
       createdByUserId: testUserId,
     });
     openGrnId = openGrn.id;
@@ -155,7 +159,7 @@ describe("Shipments & Line Items Repository Integration Tests (FEAT-PROC-03)", (
       organizationId: testOrgId,
       storeId: testStoreId,
       supplierId: testSupplierId,
-      grnNumber: "GRN-SHP-CLOSED-01",
+      grnNumber: "GRN-SHP-REPO-CLOSED-01",
       createdByUserId: testUserId,
     });
     await closeGrn(closedGrn.id, testUserId, "Formal closure");
@@ -164,15 +168,17 @@ describe("Shipments & Line Items Repository Integration Tests (FEAT-PROC-03)", (
 
   afterAll(async () => {
     await query(
-      "DELETE FROM shipment_items WHERE shipment_id IN (SELECT id FROM shipments WHERE shipment_number LIKE 'SHP-%');",
+      "DELETE FROM shipment_items WHERE shipment_id IN (SELECT id FROM shipments WHERE shipment_number LIKE 'SHP-REPO-%');",
     );
-    await query("DELETE FROM shipments WHERE shipment_number LIKE 'SHP-%';");
+    await query(
+      "DELETE FROM shipments WHERE shipment_number LIKE 'SHP-REPO-%';",
+    );
     await query("DELETE FROM goods_receipt_notes WHERE organization_id = $1;", [
       testOrgId,
     ]);
-    await query("DELETE FROM product_skus WHERE sku_code LIKE 'SHP-%';");
-    await query("DELETE FROM products WHERE product_code LIKE 'SHP-%';");
-    await query("DELETE FROM purities WHERE code LIKE 'SHP_%';");
+    await query("DELETE FROM product_skus WHERE sku_code LIKE 'SHP-REPO-%';");
+    await query("DELETE FROM products WHERE product_code LIKE 'SHP-REPO-%';");
+    await query("DELETE FROM purities WHERE code LIKE 'SHP_REPO_%';");
     await query("DELETE FROM materials WHERE organization_id = $1;", [
       testOrgId,
     ]);
@@ -182,8 +188,10 @@ describe("Shipments & Line Items Repository Integration Tests (FEAT-PROC-03)", (
     await query("DELETE FROM suppliers WHERE organization_id = $1;", [
       testOrgId,
     ]);
-    await query("DELETE FROM users WHERE email LIKE 'shp_%@jewelcore.local';");
-    await query("DELETE FROM stores WHERE code = 'SHP_STORE_001';");
+    await query(
+      "DELETE FROM users WHERE email LIKE 'shp_repo_%@jewelcore.local';",
+    );
+    await query("DELETE FROM stores WHERE code = 'SHP_REPO_STORE_001';");
     await query("DELETE FROM organizations WHERE id = $1;", [testOrgId]);
     await closePool();
   });
@@ -191,7 +199,7 @@ describe("Shipments & Line Items Repository Integration Tests (FEAT-PROC-03)", (
   it("Scenario 1: creates shipment with manifest items and persists DEC-05 4-decimal weights", async () => {
     const shipment = await createShipment({
       goodsReceiptNoteId: openGrnId,
-      shipmentNumber: "SHP-2026-0001",
+      shipmentNumber: "SHP-REPO-2026-0001",
       carrierName: "Brinks Secure Courier",
       trackingNumber: "BRINKS-TRK-9901",
       declaredPackageCount: 2,
@@ -214,7 +222,7 @@ describe("Shipments & Line Items Repository Integration Tests (FEAT-PROC-03)", (
     });
 
     expect(shipment.id).toBeDefined();
-    expect(shipment.shipmentNumber).toBe("SHP-2026-0001");
+    expect(shipment.shipmentNumber).toBe("SHP-REPO-2026-0001");
     expect(shipment.status).toBe("PENDING");
     expect(shipment.grossPackageWeightGrams).toBe(250.452);
     expect(shipment.items).toHaveLength(1);
@@ -229,7 +237,7 @@ describe("Shipments & Line Items Repository Integration Tests (FEAT-PROC-03)", (
   it("Scenario 2: accepts missing declared gross weight (stores NULL) for non-automatic QC protocol", async () => {
     const shipment = await createShipment({
       goodsReceiptNoteId: openGrnId,
-      shipmentNumber: "SHP-2026-0002",
+      shipmentNumber: "SHP-REPO-2026-0002",
       receivedByUserId: testUserId,
       items: [
         {
@@ -248,7 +256,7 @@ describe("Shipments & Line Items Repository Integration Tests (FEAT-PROC-03)", (
     await expect(
       createShipment({
         goodsReceiptNoteId: openGrnId,
-        shipmentNumber: "SHP-2026-0001", // Duplicate
+        shipmentNumber: "SHP-REPO-2026-0001", // Duplicate
         receivedByUserId: testUserId,
       }),
     ).rejects.toThrow(ConflictError);
@@ -257,7 +265,7 @@ describe("Shipments & Line Items Repository Integration Tests (FEAT-PROC-03)", (
   it("Scenario 4: rejects duplicate line_number within same shipment with 409 Conflict", async () => {
     const shipment = await createShipment({
       goodsReceiptNoteId: openGrnId,
-      shipmentNumber: "SHP-2026-0003",
+      shipmentNumber: "SHP-REPO-2026-0003",
       receivedByUserId: testUserId,
       items: [
         {
@@ -281,14 +289,14 @@ describe("Shipments & Line Items Repository Integration Tests (FEAT-PROC-03)", (
     await expect(
       createShipment({
         goodsReceiptNoteId: closedGrnId, // CLOSED GRN!
-        shipmentNumber: "SHP-2026-0004",
+        shipmentNumber: "SHP-REPO-2026-0004",
         receivedByUserId: testUserId,
       }),
     ).rejects.toThrow(UnprocessableEntityError);
   });
 
   it("Scenario 6: retrieves shipment with items and updates shipment item with OCC version counter", async () => {
-    const shipment = await getShipmentByNumber("SHP-2026-0001");
+    const shipment = await getShipmentByNumber("SHP-REPO-2026-0001");
     expect(shipment).not.toBeNull();
 
     const withItems = await getShipmentWithItems(shipment!.id);
@@ -313,7 +321,7 @@ describe("Shipments & Line Items Repository Integration Tests (FEAT-PROC-03)", (
     // 1. Create a shipment under open GRN
     const shipment = await createShipment({
       goodsReceiptNoteId: openGrnId,
-      shipmentNumber: "SHP-2026-0005",
+      shipmentNumber: "SHP-REPO-2026-0005",
       receivedByUserId: testUserId,
       items: [
         {

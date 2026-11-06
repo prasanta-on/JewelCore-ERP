@@ -36,6 +36,8 @@ import {
   createStaffAssignmentSchema,
   uploadFileSchema,
   createFileAssociationSchema,
+  createQualityCheckSchema,
+  updateQualityCheckSchema,
 } from "@jewelcore/shared";
 
 extendZodWithOpenApi(z);
@@ -1820,6 +1822,90 @@ registry.registerPath({
     },
     409: {
       description: "File already associated with target entity",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+// -------------------------------------------------------------
+// Quality Control & Metrology (FEAT-QC-01)
+// -------------------------------------------------------------
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/qc/checks",
+  summary: "Initiate Quality Inspection Session (FEAT-QC-01)",
+  description:
+    "Creates a new quality inspection session for a received shipment. Verifies active store context (INV-11) and RECEIVED shipment prerequisite.",
+  tags: ["Quality Control"],
+  security: [{ BearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: createQualityCheckSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Inspection session initiated successfully",
+    },
+    400: {
+      description: "Invalid request payload",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description: "Store context mismatch or insufficient permissions",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description: "Shipment not in RECEIVED status",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/v1/qc/checks/{id}",
+  summary: "Update Quality Inspection Session (FEAT-QC-01)",
+  description:
+    "Updates an inspection session. Enforces Sealed Session Immutability Gate (ERR_SESSION_SEALED) and OCC concurrency.",
+  tags: ["Quality Control"],
+  security: [{ BearerAuth: [] }],
+  request: {
+    params: z.object({
+      id: z.string().uuid(),
+    }),
+    body: {
+      content: {
+        "application/json": {
+          schema: updateQualityCheckSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Inspection session updated successfully",
+    },
+    404: {
+      description: "Inspection session not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description: "Inspection session is sealed and immutable",
       content: {
         "application/problem+json": { schema: ProblemDocumentSchema },
       },

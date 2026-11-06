@@ -9,6 +9,7 @@ import { createStorageRouter } from "./modules/storage/storageRoutes.js";
 import { createTaxonomyRouter } from "./modules/taxonomy/taxonomyRoutes.js";
 import { createProcurementRouter } from "./modules/procurement/procurementRoutes.js";
 import { createGovernanceRouter } from "./modules/governance/governanceRoutes.js";
+import { createQcRouter } from "./modules/qc/qcRoutes.js";
 import { createDocsRouter } from "./docs/docsRoutes.js";
 
 export function createApp(configureRoutes?: (app: Express) => void): Express {
@@ -61,7 +62,10 @@ export function createApp(configureRoutes?: (app: Express) => void): Express {
   // 11. Polymorphic Document & Object Storage Module (FEAT-GOV-03)
   app.use("/api/v1/files", createGovernanceRouter());
 
-  // 12. Interactive OpenAPI / Swagger Documentation
+  // 12. Quality Control & Metrology Module (FEAT-QC-01)
+  app.use("/api/v1/qc", createQcRouter());
+
+  // 13. Interactive OpenAPI / Swagger Documentation
   app.use(createDocsRouter());
 
   // Custom route injection (useful for test harnesses and integration mocks)

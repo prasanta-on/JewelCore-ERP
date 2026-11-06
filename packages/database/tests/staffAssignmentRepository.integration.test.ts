@@ -38,22 +38,24 @@ describe("Staff Assignment Repository Integration Tests (FEAT-PROC-04)", () => {
 
     // Clean up any stale data from prior runs
     await query(
-      "DELETE FROM staff_assignments WHERE goods_receipt_note_id IN (SELECT id FROM goods_receipt_notes WHERE grn_number LIKE 'GRN-ASN-%');",
+      "DELETE FROM staff_assignments WHERE goods_receipt_note_id IN (SELECT id FROM goods_receipt_notes WHERE grn_number LIKE 'GRN-ASN-REPO-%');",
     );
     await query(
-      "DELETE FROM shipments WHERE shipment_number LIKE 'SHP-ASN-%';",
+      "DELETE FROM shipments WHERE shipment_number LIKE 'SHP-ASN-REPO-%';",
     );
     await query(
-      "DELETE FROM goods_receipt_notes WHERE grn_number LIKE 'GRN-ASN-%';",
+      "DELETE FROM goods_receipt_notes WHERE grn_number LIKE 'GRN-ASN-REPO-%' OR supplier_id IN (SELECT id FROM suppliers WHERE code LIKE 'ASN_REPO_%');",
     );
-    await query("DELETE FROM suppliers WHERE code LIKE 'ASN_%';");
-    await query("DELETE FROM users WHERE email LIKE 'asn_%@jewelcore.local';");
-    await query("DELETE FROM stores WHERE code = 'ASN_STORE_001';");
-    await query("DELETE FROM organizations WHERE code = 'ASN_TEST_ORG';");
+    await query("DELETE FROM suppliers WHERE code LIKE 'ASN_REPO_%';");
+    await query(
+      "DELETE FROM users WHERE email LIKE 'asn_repo_%@jewelcore.local';",
+    );
+    await query("DELETE FROM stores WHERE code = 'ASN_REPO_STORE_001';");
+    await query("DELETE FROM organizations WHERE code = 'ASN_REPO_TEST_ORG';");
 
     // 1. Organization
     const org = await createOrganization({
-      code: "ASN_TEST_ORG",
+      code: "ASN_REPO_TEST_ORG",
       name: "Staff Assignment Test Enterprise",
     });
     testOrgId = org.id;
@@ -61,7 +63,7 @@ describe("Staff Assignment Repository Integration Tests (FEAT-PROC-04)", () => {
     // 2. Store
     const store = await createStore({
       organizationId: testOrgId,
-      code: "ASN_STORE_001",
+      code: "ASN_REPO_STORE_001",
       name: "Assignment Intake Facility",
       storeType: StoreType.RETAIL_STORE,
       isActive: true,
@@ -71,7 +73,7 @@ describe("Staff Assignment Repository Integration Tests (FEAT-PROC-04)", () => {
     // 3. Supplier
     const supplier = await createSupplier({
       organizationId: testOrgId,
-      code: "ASN_SUPP_001",
+      code: "ASN_REPO_SUPP_001",
       name: "De Beers Diamond Intakes",
     });
     testSupplierId = supplier.id;
@@ -79,7 +81,7 @@ describe("Staff Assignment Repository Integration Tests (FEAT-PROC-04)", () => {
     // 4. Users
     const u1 = await createUser({
       organizationId: testOrgId,
-      email: "asn_tech1@jewelcore.local",
+      email: "asn_repo_tech1@jewelcore.local",
       passwordHash: "$argon2id$v=19$fake",
       firstName: "Receiving",
       lastName: "Officer",
@@ -89,7 +91,7 @@ describe("Staff Assignment Repository Integration Tests (FEAT-PROC-04)", () => {
 
     const u2 = await createUser({
       organizationId: testOrgId,
-      email: "asn_tech2@jewelcore.local",
+      email: "asn_repo_tech2@jewelcore.local",
       passwordHash: "$argon2id$v=19$fake",
       firstName: "QC",
       lastName: "Inspector",
@@ -102,7 +104,7 @@ describe("Staff Assignment Repository Integration Tests (FEAT-PROC-04)", () => {
       organizationId: testOrgId,
       storeId: testStoreId,
       supplierId: testSupplierId,
-      grnNumber: "GRN-ASN-001",
+      grnNumber: "GRN-ASN-REPO-001",
       createdByUserId: techUser1Id,
     });
     grn1Id = g1.id;
@@ -112,7 +114,7 @@ describe("Staff Assignment Repository Integration Tests (FEAT-PROC-04)", () => {
       organizationId: testOrgId,
       storeId: testStoreId,
       supplierId: testSupplierId,
-      grnNumber: "GRN-ASN-002",
+      grnNumber: "GRN-ASN-REPO-002",
       createdByUserId: techUser1Id,
     });
     grn2Id = g2.id;
@@ -122,7 +124,7 @@ describe("Staff Assignment Repository Integration Tests (FEAT-PROC-04)", () => {
       organizationId: testOrgId,
       storeId: testStoreId,
       supplierId: testSupplierId,
-      grnNumber: "GRN-ASN-CLOSED",
+      grnNumber: "GRN-ASN-REPO-CLOSED",
       createdByUserId: techUser1Id,
     });
     await closeGrn(gClosed.id, techUser1Id, "Formal close");
@@ -131,7 +133,7 @@ describe("Staff Assignment Repository Integration Tests (FEAT-PROC-04)", () => {
     // 8. Shipment under GRN 1
     const s1 = await createShipment({
       goodsReceiptNoteId: grn1Id,
-      shipmentNumber: "SHP-ASN-001",
+      shipmentNumber: "SHP-ASN-REPO-001",
       receivedByUserId: techUser1Id,
     });
     grn1ShipmentId = s1.id;
@@ -139,7 +141,7 @@ describe("Staff Assignment Repository Integration Tests (FEAT-PROC-04)", () => {
     // 9. Shipment under GRN 2
     const s2 = await createShipment({
       goodsReceiptNoteId: grn2Id,
-      shipmentNumber: "SHP-ASN-002",
+      shipmentNumber: "SHP-ASN-REPO-002",
       receivedByUserId: techUser1Id,
     });
     grn2ShipmentId = s2.id;
@@ -147,17 +149,19 @@ describe("Staff Assignment Repository Integration Tests (FEAT-PROC-04)", () => {
 
   afterAll(async () => {
     await query(
-      "DELETE FROM staff_assignments WHERE goods_receipt_note_id IN (SELECT id FROM goods_receipt_notes WHERE grn_number LIKE 'GRN-ASN-%');",
+      "DELETE FROM staff_assignments WHERE goods_receipt_note_id IN (SELECT id FROM goods_receipt_notes WHERE grn_number LIKE 'GRN-ASN-REPO-%');",
     );
     await query(
-      "DELETE FROM shipments WHERE shipment_number LIKE 'SHP-ASN-%';",
+      "DELETE FROM shipments WHERE shipment_number LIKE 'SHP-ASN-REPO-%';",
     );
     await query(
-      "DELETE FROM goods_receipt_notes WHERE grn_number LIKE 'GRN-ASN-%';",
+      "DELETE FROM goods_receipt_notes WHERE grn_number LIKE 'GRN-ASN-REPO-%' OR supplier_id IN (SELECT id FROM suppliers WHERE code LIKE 'ASN_REPO_%');",
     );
-    await query("DELETE FROM suppliers WHERE code LIKE 'ASN_%';");
-    await query("DELETE FROM users WHERE email LIKE 'asn_%@jewelcore.local';");
-    await query("DELETE FROM stores WHERE code = 'ASN_STORE_001';");
+    await query("DELETE FROM suppliers WHERE code LIKE 'ASN_REPO_%';");
+    await query(
+      "DELETE FROM users WHERE email LIKE 'asn_repo_%@jewelcore.local';",
+    );
+    await query("DELETE FROM stores WHERE code = 'ASN_REPO_STORE_001';");
     await query("DELETE FROM organizations WHERE id = $1;", [testOrgId]);
     await closePool();
   });
