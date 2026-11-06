@@ -1,7 +1,9 @@
 import crypto from "node:crypto";
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import { getPool } from "./pool.js";
 import { withTransaction, type TransactionClient } from "./transaction.js";
+
+type Queryable = Pool | PoolClient;
 
 export interface MigrationDefinition {
   name: string;
@@ -43,30 +45,48 @@ export function calculateChecksum(content: string): string {
 
 /**
  * Ensures the migration tracking infrastructure table exists in the target database.
+ * Safely tolerates concurrent PostgreSQL catalog DDL race conditions.
  */
-export async function ensureMigrationTable(poolOverride?: Pool): Promise<void> {
-  const pool = poolOverride ?? getPool();
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS ${MIGRATION_TABLE_NAME} (
-      id SERIAL PRIMARY KEY,
-      name VARCHAR(255) NOT NULL UNIQUE,
-      checksum VARCHAR(64) NOT NULL,
-      applied_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      execution_time_ms INTEGER NOT NULL
-    );
-  `);
+export async function ensureMigrationTable(
+  poolOverride?: Queryable,
+): Promise<void> {
+  const executor = poolOverride ?? getPool();
+  try {
+    await executor.query(`
+      CREATE TABLE IF NOT EXISTS ${MIGRATION_TABLE_NAME} (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL UNIQUE,
+        checksum VARCHAR(64) NOT NULL,
+        applied_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        execution_time_ms INTEGER NOT NULL
+      );
+    `);
+  } catch (err: any) {
+    // Gracefully handle concurrent PostgreSQL catalog creation race conditions:
+    // - 42P07: duplicate_table / relation already exists
+    // - 23505: unique_violation on pg_type_typname_nsp_index
+    if (
+      err.code === "42P07" ||
+      (err.code === "23505" &&
+        (err.constraint === "pg_type_typname_nsp_index" ||
+          String(err.detail).includes("already exists")))
+    ) {
+      return;
+    }
+    throw err;
+  }
 }
 
 /**
  * Retrieves the complete list of applied migrations ordered by execution sequence.
  */
 export async function getAppliedMigrations(
-  poolOverride?: Pool,
+  poolOverride?: Queryable,
 ): Promise<AppliedMigration[]> {
-  const pool = poolOverride ?? getPool();
-  await ensureMigrationTable(pool);
+  const executor = poolOverride ?? getPool();
+  await ensureMigrationTable(executor);
 
-  const result = await pool.query<{
+  const result = await executor.query<{
     id: number;
     name: string;
     checksum: string;
@@ -119,80 +139,103 @@ export async function runMigrations(
     a.name.localeCompare(b.name),
   );
 
-  // 3. Ensure tracking infrastructure table exists
-  await ensureMigrationTable(pool);
-
-  // 4. Retrieve applied migrations
-  const applied = await getAppliedMigrations(pool);
-  const appliedMap = new Map(applied.map((a) => [a.name, a]));
-
-  const alreadyAppliedNames: string[] = [];
-  const newlyApplied: MigrationResult[] = [];
-
-  // 5. Verify checksums of already applied migrations
-  for (const m of sortedMigrations) {
-    const existing = appliedMap.get(m.name);
-    if (existing) {
-      alreadyAppliedNames.push(m.name);
-      // Validate checksum if static SQL is available
-      const content = typeof m.up === "string" ? m.up : m.name;
-      const expectedChecksum = calculateChecksum(content);
-      if (existing.checksum !== expectedChecksum && typeof m.up === "string") {
-        throw new Error(
-          `Migration checksum mismatch for "${m.name}". Applied checksum: ${existing.checksum}, current checksum: ${expectedChecksum}. Migration history must be immutable.`,
-        );
-      }
-    }
-  }
-
-  // 6. Execute pending migrations
-  for (const m of sortedMigrations) {
-    if (appliedMap.has(m.name)) {
-      continue;
-    }
-
-    const content = typeof m.up === "string" ? m.up : m.name;
-    const checksum = calculateChecksum(content);
-    const startTime = Date.now();
+  const client = await pool.connect();
+  try {
+    // Acquire PostgreSQL session advisory lock to ensure parallel runners (e.g. concurrent Vitest test workers in CI) execute sequentially
+    await client.query(
+      "SELECT pg_advisory_lock(hashtext('jewelcore_migrations_lock'));",
+    );
 
     try {
-      await withTransaction(async (txClient: TransactionClient) => {
-        if (typeof m.up === "string") {
-          await txClient.query(m.up);
-        } else {
-          await m.up(txClient);
+      // 3. Ensure tracking infrastructure table exists
+      await ensureMigrationTable(client);
+
+      // 4. Retrieve applied migrations
+      const applied = await getAppliedMigrations(client);
+      const appliedMap = new Map(applied.map((a) => [a.name, a]));
+
+      const alreadyAppliedNames: string[] = [];
+      const newlyApplied: MigrationResult[] = [];
+
+      // 5. Verify checksums of already applied migrations
+      for (const m of sortedMigrations) {
+        const existing = appliedMap.get(m.name);
+        if (existing) {
+          alreadyAppliedNames.push(m.name);
+          // Validate checksum if static SQL is available
+          const content = typeof m.up === "string" ? m.up : m.name;
+          const expectedChecksum = calculateChecksum(content);
+          if (
+            existing.checksum !== expectedChecksum &&
+            typeof m.up === "string"
+          ) {
+            throw new Error(
+              `Migration checksum mismatch for "${m.name}". Applied checksum: ${existing.checksum}, current checksum: ${expectedChecksum}. Migration history must be immutable.`,
+            );
+          }
+        }
+      }
+
+      // 6. Execute pending migrations
+      for (const m of sortedMigrations) {
+        if (appliedMap.has(m.name)) {
+          continue;
         }
 
-        const durationMs = Date.now() - startTime;
-        await txClient.query(
-          `INSERT INTO ${MIGRATION_TABLE_NAME} (name, checksum, execution_time_ms) VALUES ($1, $2, $3);`,
-          [m.name, checksum, durationMs],
-        );
-      }, pool);
+        const content = typeof m.up === "string" ? m.up : m.name;
+        const checksum = calculateChecksum(content);
+        const startTime = Date.now();
 
-      const durationMs = Date.now() - startTime;
-      newlyApplied.push({
-        name: m.name,
-        checksum,
-        executionTimeMs: durationMs,
-      });
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
+        try {
+          await withTransaction(async (txClient: TransactionClient) => {
+            if (typeof m.up === "string") {
+              await txClient.query(m.up);
+            } else {
+              await m.up(txClient);
+            }
+
+            const durationMs = Date.now() - startTime;
+            await txClient.query(
+              `INSERT INTO ${MIGRATION_TABLE_NAME} (name, checksum, execution_time_ms) VALUES ($1, $2, $3);`,
+              [m.name, checksum, durationMs],
+            );
+          }, pool);
+
+          const durationMs = Date.now() - startTime;
+          newlyApplied.push({
+            name: m.name,
+            checksum,
+            executionTimeMs: durationMs,
+          });
+        } catch (err: unknown) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          return {
+            status: "FAILED",
+            totalMigrations: sortedMigrations.length,
+            alreadyApplied: alreadyAppliedNames,
+            newlyApplied,
+            failedMigration: m.name,
+            error: errorMsg,
+          };
+        }
+      }
+
       return {
-        status: "FAILED",
+        status: "SUCCESS",
         totalMigrations: sortedMigrations.length,
         alreadyApplied: alreadyAppliedNames,
         newlyApplied,
-        failedMigration: m.name,
-        error: errorMsg,
       };
+    } finally {
+      try {
+        await client.query(
+          "SELECT pg_advisory_unlock(hashtext('jewelcore_migrations_lock'));",
+        );
+      } catch {
+        // Ignore advisory unlock errors during teardown
+      }
     }
+  } finally {
+    client.release();
   }
-
-  return {
-    status: "SUCCESS",
-    totalMigrations: sortedMigrations.length,
-    alreadyApplied: alreadyAppliedNames,
-    newlyApplied,
-  };
 }

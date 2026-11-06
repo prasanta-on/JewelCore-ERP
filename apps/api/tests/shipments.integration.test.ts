@@ -196,33 +196,39 @@ describe("Shipments & Line Items API Endpoints (FEAT-PROC-03)", () => {
   });
 
   afterAll(async () => {
-    await query(
-      "DELETE FROM shipment_items WHERE shipment_id IN (SELECT id FROM shipments WHERE shipment_number LIKE 'SHP-API-%');",
-    );
-    await query(
-      "DELETE FROM shipments WHERE shipment_number LIKE 'SHP-API-%';",
-    );
-    await query("DELETE FROM goods_receipt_notes WHERE organization_id = $1;", [
-      testOrgId,
-    ]);
-    await query("DELETE FROM product_skus WHERE sku_code LIKE 'SHP-API-%';");
-    await query("DELETE FROM products WHERE product_code LIKE 'SHP-API-%';");
-    await query("DELETE FROM purities WHERE code LIKE 'SHP_API_%';");
-    await query("DELETE FROM materials WHERE organization_id = $1;", [
-      testOrgId,
-    ]);
-    await query("DELETE FROM categories WHERE organization_id = $1;", [
-      testOrgId,
-    ]);
-    await query("DELETE FROM suppliers WHERE organization_id = $1;", [
-      testOrgId,
-    ]);
-    await query(
-      "DELETE FROM users WHERE email LIKE 'shp_api_%@jewelcore.local';",
-    );
-    await query("DELETE FROM stores WHERE code = 'SHP_API_STR_01';");
-    await query("DELETE FROM organizations WHERE id = $1;", [testOrgId]);
-    await closePool();
+    try {
+      await query(
+        "DELETE FROM shipment_items WHERE shipment_id IN (SELECT id FROM shipments WHERE shipment_number LIKE 'SHP-API-%');",
+      );
+      await query(
+        "DELETE FROM shipments WHERE shipment_number LIKE 'SHP-API-%';",
+      );
+      await query(
+        "DELETE FROM goods_receipt_notes WHERE organization_id = $1;",
+        [testOrgId],
+      );
+      await query("DELETE FROM product_skus WHERE sku_code LIKE 'SHP-API-%';");
+      await query("DELETE FROM products WHERE product_code LIKE 'SHP-API-%';");
+      await query("DELETE FROM purities WHERE code LIKE 'SHP_API_%';");
+      await query("DELETE FROM materials WHERE organization_id = $1;", [
+        testOrgId,
+      ]);
+      await query("DELETE FROM categories WHERE organization_id = $1;", [
+        testOrgId,
+      ]);
+      await query("DELETE FROM suppliers WHERE organization_id = $1;", [
+        testOrgId,
+      ]);
+      await query(
+        "DELETE FROM users WHERE email LIKE 'shp_api_%@jewelcore.local';",
+      );
+      await query("DELETE FROM stores WHERE code = 'SHP_API_STR_01';");
+      await query("DELETE FROM organizations WHERE id = $1;", [testOrgId]);
+    } catch {
+      // Ignore cleanup error if tables or records do not exist
+    } finally {
+      await closePool();
+    }
   });
 
   // AC Scenario 1: Line Item Declared Weight Validation (DEC-05)

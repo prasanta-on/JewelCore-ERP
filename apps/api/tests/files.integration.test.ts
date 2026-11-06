@@ -151,6 +151,8 @@ describe("Polymorphic Document & File Storage API (FEAT-GOV-03)", () => {
       );
       await query("DELETE FROM stores WHERE code = 'GOV_STORE_001';");
       await query("DELETE FROM organizations WHERE code = 'GOV_TEST_ORG';");
+    } catch {
+      // Ignore cleanup error if tables do not exist
     } finally {
       await closePool();
     }
