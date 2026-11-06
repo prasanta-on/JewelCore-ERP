@@ -55,6 +55,7 @@ import {
   retireRfidAssignmentSchema,
   createStockApprovalSchema,
   createRfidJobSchema,
+  createAuditEventSchema,
 } from "@jewelcore/shared";
 
 extendZodWithOpenApi(z);
@@ -3732,6 +3733,93 @@ registry.registerPath({
   responses: {
     200: {
       description: "Processed RFID job summary",
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/governance/audit-events",
+  summary:
+    "Capture an immutable compliance audit event (FEAT-GOV-02, Entity 40 / INV-09)",
+  tags: ["Governance & Compliance"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: createAuditEventSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Immutable compliance audit event persisted",
+    },
+    400: {
+      description: "Validation failure",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description: "Forbidden - Insufficient permissions (requires audit:read)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/governance/audit-events",
+  summary: "Query compliance audit events with filters and pagination",
+  tags: ["Governance & Compliance"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: "List of compliance audit events",
+    },
+    403: {
+      description: "Forbidden - Insufficient permissions (requires audit:read)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/governance/audit-events/{id}",
+  summary: "Retrieve compliance audit event by ID",
+  tags: ["Governance & Compliance"],
+  security: [{ bearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: {
+      description: "Audit event record details",
+    },
+    404: {
+      description: "Audit event not found or belongs to another organization",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description: "Forbidden - Insufficient permissions (requires audit:read)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
     },
   },
 });

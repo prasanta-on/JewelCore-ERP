@@ -28,6 +28,7 @@ import { migration00025CreateRfidTags } from "./00025_create_rfid_tags.js";
 import { migration00026CreateRfidTagAssignments } from "./00026_create_rfid_tag_assignments.js";
 import { migration00027CreateStockApprovals } from "./00027_create_stock_approvals.js";
 import { migration00028CreateRfidJobs } from "./00028_create_rfid_jobs.js";
+import { migration00029CreateAuditEvents } from "./00029_create_audit_events.js";
 
 export const allMigrations: MigrationDefinition[] = [
   migration00001CreateIamOrganizationsAndStores,
@@ -58,6 +59,7 @@ export const allMigrations: MigrationDefinition[] = [
   migration00026CreateRfidTagAssignments,
   migration00027CreateStockApprovals,
   migration00028CreateRfidJobs,
+  migration00029CreateAuditEvents,
 ];
 
 /**
@@ -95,3 +97,4 @@ export * from "./00025_create_rfid_tags.js";
 export * from "./00026_create_rfid_tag_assignments.js";
 export * from "./00027_create_stock_approvals.js";
 export * from "./00028_create_rfid_jobs.js";
+export * from "./00029_create_audit_events.js";

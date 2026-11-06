@@ -10,6 +10,7 @@ import { createTaxonomyRouter } from "./modules/taxonomy/taxonomyRoutes.js";
 import { createProcurementRouter } from "./modules/procurement/procurementRoutes.js";
 import { createGovernanceRouter } from "./modules/governance/governanceRoutes.js";
 import { createStockApprovalRouter } from "./modules/governance/stockApprovalRoutes.js";
+import { createAuditRouter } from "./modules/governance/auditRoutes.js";
 import { createQcRouter } from "./modules/qc/qcRoutes.js";
 import { createInventoryRouter } from "./modules/inventory/inventoryRoutes.js";
 import { createRfidRouter } from "./modules/rfid/rfidRoutes.js";
@@ -67,6 +68,9 @@ export function createApp(configureRoutes?: (app: Express) => void): Express {
 
   // 11b. Commercial Governance & Stock Approval Module (FEAT-GOV-01)
   app.use("/api/v1/governance", createStockApprovalRouter());
+
+  // 11c. Compliance Audit Trail Engine Module (FEAT-GOV-02)
+  app.use("/api/v1/governance", createAuditRouter());
 
   // 12. Quality Control & Metrology Module (FEAT-QC-01)
   app.use("/api/v1/qc", createQcRouter());

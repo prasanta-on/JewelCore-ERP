@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Immutable Compliance Audit Trail Engine (`FEAT-GOV-02` / `INV-09`, Entity 40)**:
+  - Created `audit_events` table (Entity 40) managing tamper-evident regulatory compliance and security audit logs across operational mutations.
+  - Implemented `recordAuditEvent`, `getAuditEventById`, and `listAuditEvents` repository methods capturing actor, client IP address, dotted action verb, resource reference, reason, and prior/post JSON state snapshots.
+  - Enforced `INV-09` Append-Only Immutability: PostgreSQL database trigger `trg_audit_events_immutability` strictly prohibits `UPDATE` and `DELETE` operations on `audit_events`.
+  - Seeded permission `audit:read` (granted to `SYSTEM_ADMIN` and `STORE_MANAGER`) and strictly rejected unauthorized access attempts (e.g. `SALES_ASSOCIATE`) with 403 Forbidden (`ERR_INSUFFICIENT_PERMISSIONS`).
+  - Implemented REST API endpoints mounted under `/api/v1/governance`:
+    - `POST /api/v1/governance/audit-events` (`audit:read`) - Capture point-in-time material mutation audit event.
+    - `GET /api/v1/governance/audit-events/:id` (`audit:read`) - Retrieve compliance audit event by ID with tenant boundary isolation.
+    - `GET /api/v1/governance/audit-events` (`audit:read`) - Query and filter compliance audit events with pagination and resource/date criteria.
+  - Added full OpenAPI 3.0 path definitions and request/response schemas.
+  - Added comprehensive repository and API integration tests (9 test cases passing).
+
 - **Async RFID Print & Encoding Worker Adapter (`FEAT-RFID-03`, Entities 37, 38 & 43)**:
   - Created `rfid_jobs` table (Entity 37) managing batch print and transponder encoding queues with status tracking (`QUEUED`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`) and aggregate item metrics (`total_items`, `completed_items`, `failed_items`).
   - Created `rfid_job_items` table (Entity 38) tracking granular piece encoding status (`PENDING`, `ENCODED`, `FAILED`), hardware error messages, retry counts, and bound tag references.
