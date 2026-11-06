@@ -31,3 +31,4 @@ export * from "./repositories/qcRepository.js";
 export * from "./repositories/inventoryRepository.js";
 export * from "./repositories/stockBalanceRepository.js";
 export * from "./repositories/movementRepository.js";
+export * from "./repositories/stateHistoryRepository.js";

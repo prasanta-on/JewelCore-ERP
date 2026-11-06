@@ -15,6 +15,9 @@ import {
   createInventoryMovementHandler,
   getInventoryMovementHandler,
   listInventoryMovementsHandler,
+  updateInventoryItemStateHandler,
+  getInventoryItemHistoryHandler,
+  listStatusHistoryHandler,
 } from "./inventoryController.js";
 
 export function createInventoryRouter(): Router {
@@ -80,6 +83,23 @@ export function createInventoryRouter(): Router {
     "/movements/:id",
     requirePermission("inventory:view"),
     getInventoryMovementHandler,
+  );
+
+  // Multi-Dimensional State History & OCC Concurrency (Entity 31 - FEAT-INV-04 / INV-08)
+  router.patch(
+    "/items/:id/state",
+    requirePermission("inventory:state:update"),
+    updateInventoryItemStateHandler,
+  );
+  router.get(
+    "/items/:id/history",
+    requirePermission("inventory:view"),
+    getInventoryItemHistoryHandler,
+  );
+  router.get(
+    "/status-history",
+    requirePermission("inventory:view"),
+    listStatusHistoryHandler,
   );
 
   return router;

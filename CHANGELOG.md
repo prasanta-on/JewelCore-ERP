@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Multi-Dimensional State History & OCC Concurrency Engine (`FEAT-INV-04` / `INV-08`, Entity 31)**:
+  - Created `inventory_status_history` table (Entity 31) establishing an append-only transition audit log across the 4 orthogonal state dimensions: `QUALITY`, `APPROVAL`, `CUSTODY`, and `COMMERCIAL`.
+  - Implemented database trigger `trg_inventory_status_history_immutability` enforcing strict append-only audit immutability (`INV-09`), prohibiting `UPDATE` and `DELETE` operations with SQLSTATE `23514`.
+  - Enforced Root Aggregate Row Locking (`INV-08`): state mutation requests serialize on the parent `inventory_items` row using `SELECT ... FOR UPDATE`, eliminating concurrent interleaving and lost updates.
+  - Enforced Optimistic Concurrency Control (OCC): updates verify `expectedVersion` matches the current version, incrementing `version = version + 1` upon success and rejecting stale concurrent transactions with 409 Conflict (`ERR_OCC_VERSION_MISMATCH`).
+  - Implemented Commercial Readiness Gate (`ERR_COMMERCIAL_STATE_INVALID_PREREQUISITE`, 422): transitioning commercial state to `AVAILABLE_FOR_SALE` strictly requires `quality_state = 'QC_APPROVED'`, `approval_state = 'APPROVED'`, and `custody_state IN ('IN_VAULT', 'IN_DISPLAY')`.
+  - Seeded permission `inventory:state:update` and mapped to `SYSTEM_ADMIN`, `STORE_MANAGER`, and `INVENTORY_CONTROLLER`.
+  - Implemented REST API endpoints:
+    - `PATCH /api/v1/inventory/items/:id/state` (`inventory:state:update`)
+    - `GET /api/v1/inventory/items/:id/history` (`inventory:view`)
+    - `GET /api/v1/inventory/status-history` (`inventory:view`)
+  - Integrated OpenAPI 3.1 documentation for state update schemas and history endpoints.
+  - Added comprehensive repository and API integration tests (24 test cases passing).
+
 - **Unified Custody Movement Ledger (`FEAT-INV-03` / `INV-09`, `INV-13`, `INV-16`, Entity 30)**:
   - Created `inventory_movements` table (Entity 30) establishing an immutable audit ledger of every internal physical custody transfer across the store storage hierarchy.
   - Supported comprehensive `MovementType` operations: `INTAKE_PLACEMENT`, `VAULT_TRANSFER`, `DISPLAY_PLACEMENT`, `RETURN_TO_VAULT`, `AUDIT_ADJUSTMENT`, and `CUSTODY_DEPARTURE`.

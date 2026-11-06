@@ -48,6 +48,7 @@ import {
   createStockBalanceSchema,
   updateStockBalanceSchema,
   createInventoryMovementSchema,
+  updateInventoryItemStateSchema,
 } from "@jewelcore/shared";
 
 extendZodWithOpenApi(z);
@@ -2964,6 +2965,156 @@ registry.registerPath({
     },
     404: {
       description: "Inventory movement not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/v1/inventory/items/{id}/state",
+  summary: "Update Inventory Item State with OCC (FEAT-INV-04)",
+  description:
+    "Mutates one of the 4 orthogonal state dimensions (QUALITY, APPROVAL, CUSTODY, COMMERCIAL) under an exclusive root aggregate lock, increments version, logs immutable status history, and verifies OCC expected version (INV-08).",
+  tags: ["Inventory"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: updateInventoryItemStateSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Item state updated successfully and transition logged",
+    },
+    400: {
+      description: "Malformed payload or no-op state transition",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description:
+        "Insufficient permissions (requires inventory:state:update) or store context violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    404: {
+      description: "Inventory item not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    409: {
+      description:
+        "OCC version mismatch: item was modified by another transaction (INV-08)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description:
+        "Commercial readiness gate violation: prerequisites not met for AVAILABLE_FOR_SALE",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/inventory/items/{id}/history",
+  summary: "Get Inventory Item Status History (FEAT-INV-04)",
+  description:
+    "Retrieves full chronological audit log of all multi-dimensional state transitions for a piece.",
+  tags: ["Inventory"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: {
+      description: "List of status transition history records",
+    },
+    403: {
+      description: "Insufficient permissions or store context violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    404: {
+      description: "Inventory item not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/inventory/status-history",
+  summary: "List Inventory Status History Across Items (FEAT-INV-04)",
+  description:
+    "Queries status history audit records with optional item and dimension filtering.",
+  tags: ["Inventory"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "inventoryItemId",
+      in: "query",
+      required: false,
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "dimensionChanged",
+      in: "query",
+      required: false,
+      schema: {
+        type: "string",
+        enum: ["QUALITY", "APPROVAL", "CUSTODY", "COMMERCIAL"],
+      },
+    },
+    {
+      name: "limit",
+      in: "query",
+      required: false,
+      schema: { type: "integer", minimum: 1, maximum: 100, default: 50 },
+    },
+    {
+      name: "offset",
+      in: "query",
+      required: false,
+      schema: { type: "integer", minimum: 0, default: 0 },
+    },
+  ],
+  responses: {
+    200: {
+      description: "Filtered list of status history records",
+    },
+    403: {
+      description: "Insufficient permissions (requires inventory:view)",
       content: {
         "application/problem+json": { schema: ProblemDocumentSchema },
       },

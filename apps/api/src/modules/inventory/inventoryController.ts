@@ -7,6 +7,8 @@ import {
   listStockBalancesQuerySchema,
   createInventoryMovementSchema,
   listInventoryMovementsQuerySchema,
+  updateInventoryItemStateSchema,
+  listStatusHistoryQuerySchema,
   BadRequestError,
   NotFoundError,
   ForbiddenError,
@@ -24,6 +26,9 @@ import {
   createInventoryMovement,
   getInventoryMovementById,
   listInventoryMovements,
+  updateInventoryItemState,
+  getInventoryItemHistory,
+  listStatusHistory,
 } from "@jewelcore/database";
 
 /**
@@ -410,6 +415,113 @@ export async function listInventoryMovementsHandler(
 
     const movements = await listInventoryMovements(query);
     res.status(200).json(movements);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Updates an inventory piece's multi-dimensional state with optimistic concurrency control
+ * and appends an audit record to inventory_status_history (Entity 31 - FEAT-INV-04 / INV-08).
+ */
+export async function updateInventoryItemStateHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) {
+      throw new BadRequestError("Inventory item ID parameter is required");
+    }
+
+    const item = await getInventoryItemById(id);
+    if (!item) {
+      throw new NotFoundError(
+        `Inventory item with ID '${id}' not found`,
+        "ERR_INVENTORY_ITEM_NOT_FOUND",
+      );
+    }
+
+    const activeStoreId =
+      req.storeContext?.storeId ??
+      (typeof req.headers["x-store-id"] === "string"
+        ? req.headers["x-store-id"]
+        : undefined);
+
+    if (activeStoreId && activeStoreId !== item.storeId) {
+      throw new ForbiddenError(
+        "Access to the requested store context is denied",
+        "ERR_STORE_ACCESS_DENIED",
+      );
+    }
+
+    const input = updateInventoryItemStateSchema.parse(req.body);
+
+    const result = await updateInventoryItemState(id, input, {
+      userId: req.user!.userId,
+    });
+
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Retrieves full audit transition history for a specific inventory piece.
+ */
+export async function getInventoryItemHistoryHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) {
+      throw new BadRequestError("Inventory item ID parameter is required");
+    }
+
+    const item = await getInventoryItemById(id);
+    if (!item) {
+      throw new NotFoundError(
+        `Inventory item with ID '${id}' not found`,
+        "ERR_INVENTORY_ITEM_NOT_FOUND",
+      );
+    }
+
+    const activeStoreId =
+      req.storeContext?.storeId ??
+      (typeof req.headers["x-store-id"] === "string"
+        ? req.headers["x-store-id"]
+        : undefined);
+
+    if (activeStoreId && activeStoreId !== item.storeId) {
+      throw new ForbiddenError(
+        "Access to the requested store context is denied",
+        "ERR_STORE_ACCESS_DENIED",
+      );
+    }
+
+    const history = await getInventoryItemHistory(id);
+    res.status(200).json(history);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Lists inventory status history records across items with query filtering and pagination.
+ */
+export async function listStatusHistoryHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const query = listStatusHistoryQuerySchema.parse(req.query);
+    const history = await listStatusHistory(query);
+    res.status(200).json(history);
   } catch (err) {
     next(err);
   }
