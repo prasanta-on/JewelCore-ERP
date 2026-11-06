@@ -38,6 +38,7 @@ import {
   createFileAssociationSchema,
   createQualityCheckSchema,
   updateQualityCheckSchema,
+  createWeightMeasurementSchema,
 } from "@jewelcore/shared";
 
 extendZodWithOpenApi(z);
@@ -1906,6 +1907,42 @@ registry.registerPath({
     },
     422: {
       description: "Inspection session is sealed and immutable",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/qc/measurements",
+  summary: "Ingest Analytical Balance Scale Reading (FEAT-QC-02)",
+  description:
+    "Ingests an analytical balance weight reading. Enforces DEC-05 4-decimal precision, positive gross weight (INV-02), and append-only immutability (INV-09).",
+  tags: ["Quality Control"],
+  security: [{ BearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: createWeightMeasurementSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Scale reading ingested successfully",
+    },
+    400: {
+      description: "Invalid weight value or physics violation (INV-02)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description: "Insufficient permissions (requires qc:measure)",
       content: {
         "application/problem+json": { schema: ProblemDocumentSchema },
       },

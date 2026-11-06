@@ -3,11 +3,15 @@ import {
   type QualityCheckRecord,
   type QualityCheckStatusType,
   type InspectionType,
+  type WeightMeasurementRecord,
+  type MeasurementType,
+  type MeasurementStage,
   QualityCheckStatus,
   SEALED_QC_STATUSES,
   ConflictError,
   UnprocessableEntityError,
   NotFoundError,
+  BadRequestError,
 } from "@jewelcore/shared";
 import { getPool } from "../pool.js";
 import { uuidv7 } from "../uuidv7.js";
@@ -386,4 +390,237 @@ export async function updateQualityCheck(
   }
 
   return withTransaction((tx) => executeUpdate(tx.rawClient));
+}
+
+// -------------------------------------------------------------
+// Analytical Balance Metrology (FEAT-QC-02 / INV-02, INV-09)
+// -------------------------------------------------------------
+
+export interface WeightMeasurementRow {
+  id: string;
+  quality_check_id: string | null;
+  quality_check_item_id: string | null;
+  balance_device_id: string;
+  measurement_type: MeasurementType;
+  measurement_stage: MeasurementStage;
+  measured_weight: string | number;
+  tare_weight: string | number;
+  net_weight: string | number;
+  measurement_unit: string;
+  is_calibrated: boolean;
+  measured_by_user_id: string;
+  measured_at: Date;
+  created_at: Date;
+}
+
+export function mapRowToWeightMeasurement(
+  row: WeightMeasurementRow,
+): WeightMeasurementRecord {
+  return {
+    id: row.id,
+    qualityCheckId: row.quality_check_id,
+    qualityCheckItemId: row.quality_check_item_id,
+    balanceDeviceId: row.balance_device_id,
+    measurementType: row.measurement_type,
+    measurementStage: row.measurement_stage,
+    measuredWeight: parseFloat(Number(row.measured_weight).toFixed(4)),
+    tareWeight: parseFloat(Number(row.tare_weight).toFixed(4)),
+    netWeight: parseFloat(Number(row.net_weight).toFixed(4)),
+    measurementUnit: row.measurement_unit,
+    isCalibrated: Boolean(row.is_calibrated),
+    measuredByUserId: row.measured_by_user_id,
+    measuredAt: new Date(row.measured_at),
+    createdAt: new Date(row.created_at),
+  };
+}
+
+export interface CreateWeightMeasurementParams {
+  id?: string;
+  qualityCheckId?: string | null;
+  qualityCheckItemId?: string | null;
+  balanceDeviceId?: string;
+  measurementType?: MeasurementType;
+  measurementStage?: MeasurementStage;
+  measuredWeight: number;
+  tareWeight?: number;
+  measurementUnit?: string;
+  isCalibrated?: boolean;
+  measuredByUserId: string;
+  measuredAt?: Date | string;
+}
+
+export interface ListWeightMeasurementsFilter {
+  qualityCheckId?: string;
+  qualityCheckItemId?: string;
+  balanceDeviceId?: string;
+  measurementStage?: string;
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * Persists an immutable analytical balance scale reading (FEAT-QC-02 / INV-02, INV-09).
+ * Enforces positive gross weight and DEC-05 4-decimal precision.
+ */
+export async function createWeightMeasurement(
+  params: CreateWeightMeasurementParams,
+  clientOverride?: Queryable,
+): Promise<WeightMeasurementRecord> {
+  const executor = clientOverride ?? getPool();
+
+  if (params.measuredWeight <= 0) {
+    throw new BadRequestError(
+      "Gross weight must be strictly positive (> 0) (INV-02)",
+      "ERR_INVALID_WEIGHT_VALUE",
+    );
+  }
+
+  const tareWeight = params.tareWeight ?? 0;
+  if (tareWeight < 0) {
+    throw new BadRequestError(
+      "Tare weight cannot be negative (INV-02)",
+      "ERR_INVALID_WEIGHT_VALUE",
+    );
+  }
+
+  if (params.measuredWeight < tareWeight) {
+    throw new BadRequestError(
+      "Gross measured weight must be greater than or equal to tare weight (INV-02)",
+      "ERR_INVALID_WEIGHT_VALUE",
+    );
+  }
+
+  const id = params.id ?? uuidv7();
+  const balanceDeviceId = params.balanceDeviceId ?? "SCALE-BRIDGE-01";
+  const measurementType = params.measurementType ?? "GROSS_WEIGHT";
+  const measurementStage = params.measurementStage ?? "INTAKE_RECEIVING";
+  const measurementUnit = params.measurementUnit ?? "GRAMS";
+  const isCalibrated = params.isCalibrated ?? true;
+  const measuredAt = params.measuredAt
+    ? new Date(params.measuredAt)
+    : new Date();
+
+  const res = await executor.query<WeightMeasurementRow>(
+    `
+    INSERT INTO weight_measurements (
+      id,
+      quality_check_id,
+      quality_check_item_id,
+      balance_device_id,
+      measurement_type,
+      measurement_stage,
+      measured_weight,
+      tare_weight,
+      measurement_unit,
+      is_calibrated,
+      measured_by_user_id,
+      measured_at,
+      created_at
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, clock_timestamp())
+    RETURNING *
+    `,
+    [
+      id,
+      params.qualityCheckId ?? null,
+      params.qualityCheckItemId ?? null,
+      balanceDeviceId,
+      measurementType,
+      measurementStage,
+      params.measuredWeight,
+      tareWeight,
+      measurementUnit,
+      isCalibrated,
+      params.measuredByUserId,
+      measuredAt,
+    ],
+  );
+
+  const row = res.rows[0];
+  if (!row) {
+    throw new Error("Failed to insert weight measurement record");
+  }
+
+  return mapRowToWeightMeasurement(row);
+}
+
+/**
+ * Retrieves a weight measurement by its primary surrogate key.
+ */
+export async function getWeightMeasurementById(
+  id: string,
+  clientOverride?: Queryable,
+): Promise<WeightMeasurementRecord | null> {
+  const executor = clientOverride ?? getPool();
+  const res = await executor.query<WeightMeasurementRow>(
+    `SELECT * FROM weight_measurements WHERE id = $1`,
+    [id],
+  );
+  const row = res.rows[0];
+  if (!row) {
+    return null;
+  }
+  return mapRowToWeightMeasurement(row);
+}
+
+/**
+ * Lists weight measurements matching optional query filters.
+ */
+export async function listWeightMeasurements(
+  filter: ListWeightMeasurementsFilter = {},
+  clientOverride?: Queryable,
+): Promise<{ items: WeightMeasurementRecord[]; total: number }> {
+  const executor = clientOverride ?? getPool();
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  let paramIdx = 1;
+
+  if (filter.qualityCheckId) {
+    conditions.push(`quality_check_id = $${paramIdx++}`);
+    params.push(filter.qualityCheckId);
+  }
+
+  if (filter.qualityCheckItemId) {
+    conditions.push(`quality_check_item_id = $${paramIdx++}`);
+    params.push(filter.qualityCheckItemId);
+  }
+
+  if (filter.balanceDeviceId) {
+    conditions.push(`balance_device_id = $${paramIdx++}`);
+    params.push(filter.balanceDeviceId);
+  }
+
+  if (filter.measurementStage) {
+    conditions.push(`measurement_stage = $${paramIdx++}`);
+    params.push(filter.measurementStage);
+  }
+
+  const whereClause =
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const countRes = await executor.query<{ total: string | number }>(
+    `SELECT COUNT(*) AS total FROM weight_measurements ${whereClause}`,
+    params,
+  );
+  const total = Number(countRes.rows[0]?.total ?? 0);
+
+  const limit = filter.limit ?? 50;
+  const offset = filter.offset ?? 0;
+
+  params.push(limit, offset);
+  const dataRes = await executor.query<WeightMeasurementRow>(
+    `
+    SELECT *
+    FROM weight_measurements
+    ${whereClause}
+    ORDER BY measured_at DESC
+    LIMIT $${paramIdx++} OFFSET $${paramIdx++}
+    `,
+    params,
+  );
+
+  return {
+    items: dataRes.rows.map(mapRowToWeightMeasurement),
+    total,
+  };
 }

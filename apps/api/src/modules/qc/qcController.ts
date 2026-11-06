@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import {
   createQualityCheckSchema,
   updateQualityCheckSchema,
+  createWeightMeasurementSchema,
   QualityCheckStatus,
   SEALED_QC_STATUSES,
   BadRequestError,
@@ -15,6 +16,9 @@ import {
   listQualityChecks,
   updateQualityCheck,
   getShipmentWithStore,
+  createWeightMeasurement,
+  getWeightMeasurementById,
+  listWeightMeasurements,
 } from "@jewelcore/database";
 
 /**
@@ -208,6 +212,139 @@ export async function updateQualityCheckHandler(
     });
 
     res.status(200).json(updated);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Ingests a raw sub-milligram scale reading from an analytical balance (FEAT-QC-02 / INV-02, INV-09).
+ *
+ * Enforces:
+ * - Gross weight must be strictly positive (> 0) (ERR_INVALID_WEIGHT_VALUE, 400)
+ * - DEC-05 4-decimal precision
+ * - Strict append-only immutability
+ */
+export async function createWeightMeasurementHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const parseResult = createWeightMeasurementSchema.safeParse(req.body);
+
+    if (!parseResult.success) {
+      const hasWeightIssue = parseResult.error.issues.some((issue) =>
+        [
+          "measuredWeight",
+          "grossWeight",
+          "grossWeightGrams",
+          "tareWeight",
+          "tareWeightGrams",
+        ].includes(String(issue.path[0])),
+      );
+
+      if (hasWeightIssue) {
+        throw new BadRequestError(
+          parseResult.error.issues[0]?.message ??
+            "Weight value must be strictly positive (> 0) (INV-02)",
+          "ERR_INVALID_WEIGHT_VALUE",
+        );
+      }
+
+      throw parseResult.error;
+    }
+
+    const input = parseResult.data;
+    const measuredByUserId = input.measuredByUserId ?? req.user!.userId;
+
+    const measurement = await createWeightMeasurement({
+      qualityCheckId: input.qualityCheckId ?? null,
+      qualityCheckItemId: input.qualityCheckItemId ?? null,
+      balanceDeviceId: input.balanceDeviceId,
+      measurementType: input.measurementType,
+      measurementStage: input.measurementStage,
+      measuredWeight: input.measuredWeight!,
+      tareWeight: input.tareWeight,
+      measurementUnit: input.measurementUnit,
+      isCalibrated: input.isCalibrated,
+      measuredByUserId,
+      measuredAt: input.measuredAt,
+    });
+
+    res.status(201).json(measurement);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Retrieves an analytical scale measurement reading by ID.
+ */
+export async function getWeightMeasurementHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) {
+      throw new BadRequestError("Weight measurement ID parameter is required");
+    }
+
+    const measurement = await getWeightMeasurementById(id);
+    if (!measurement) {
+      throw new NotFoundError(
+        `Weight measurement record with ID '${id}' not found`,
+        "ERR_MEASUREMENT_NOT_FOUND",
+      );
+    }
+
+    res.status(200).json(measurement);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Lists weight measurements matching optional query filters.
+ */
+export async function listWeightMeasurementsHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const qualityCheckId =
+      typeof req.query.qualityCheckId === "string"
+        ? req.query.qualityCheckId
+        : undefined;
+    const qualityCheckItemId =
+      typeof req.query.qualityCheckItemId === "string"
+        ? req.query.qualityCheckItemId
+        : undefined;
+    const balanceDeviceId =
+      typeof req.query.balanceDeviceId === "string"
+        ? req.query.balanceDeviceId
+        : undefined;
+    const measurementStage =
+      typeof req.query.measurementStage === "string"
+        ? req.query.measurementStage
+        : undefined;
+
+    const limit = req.query.limit ? Number(req.query.limit) : 50;
+    const offset = req.query.offset ? Number(req.query.offset) : 0;
+
+    const result = await listWeightMeasurements({
+      qualityCheckId,
+      qualityCheckItemId,
+      balanceDeviceId,
+      measurementStage,
+      limit,
+      offset,
+    });
+
+    res.status(200).json(result);
   } catch (err) {
     next(err);
   }

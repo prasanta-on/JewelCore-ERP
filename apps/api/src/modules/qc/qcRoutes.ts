@@ -9,6 +9,9 @@ import {
   getQualityCheckHandler,
   listQualityChecksHandler,
   updateQualityCheckHandler,
+  createWeightMeasurementHandler,
+  getWeightMeasurementHandler,
+  listWeightMeasurementsHandler,
 } from "./qcController.js";
 
 export function createQcRouter(): Router {
@@ -33,6 +36,15 @@ export function createQcRouter(): Router {
     requirePermission("qc:update"),
     updateQualityCheckHandler,
   );
+
+  // Analytical Balance Metrology (Entity 25 - FEAT-QC-02 / INV-02, INV-09)
+  router.post(
+    "/measurements",
+    requirePermission("qc:measure"),
+    createWeightMeasurementHandler,
+  );
+  router.get("/measurements", listWeightMeasurementsHandler);
+  router.get("/measurements/:id", getWeightMeasurementHandler);
 
   return router;
 }
