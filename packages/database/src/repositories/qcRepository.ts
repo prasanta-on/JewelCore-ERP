@@ -6,8 +6,14 @@ import {
   type WeightMeasurementRecord,
   type MeasurementType,
   type MeasurementStage,
+  type QualityCheckItemRecord,
+  type ItemGemstoneRecord,
+  type StoneType,
+  type CertificateAuthority,
   QualityCheckStatus,
+  QualityCheckItemStatus,
   SEALED_QC_STATUSES,
+  calculateNetWeightGrams,
   ConflictError,
   UnprocessableEntityError,
   NotFoundError,
@@ -623,4 +629,527 @@ export async function listWeightMeasurements(
     items: dataRes.rows.map(mapRowToWeightMeasurement),
     total,
   };
+}
+
+// -------------------------------------------------------------
+// QC Items & Mounted Gemstone Parcels (FEAT-QC-03, FEAT-QC-04)
+// -------------------------------------------------------------
+
+export interface QualityCheckItemRow {
+  id: string;
+  quality_check_id: string;
+  shipment_item_id: string;
+  item_sequence_number: number | string;
+  status: QualityCheckItemStatus;
+  verified_material_id: string | null;
+  verified_purity_id: string | null;
+  gross_weight_grams: string | number | null;
+  tare_weight_grams: string | number;
+  net_weight_grams: string | number | null;
+  stone_weight_carats: string | number;
+  hallmark_verified: boolean | null;
+  visual_inspection_passed: boolean | null;
+  damage_detected: boolean | null;
+  damage_notes: string | null;
+  rejection_reason: string | null;
+  decision_by_user_id: string | null;
+  decision_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export function mapRowToQualityCheckItem(
+  row: QualityCheckItemRow,
+): QualityCheckItemRecord {
+  return {
+    id: row.id,
+    qualityCheckId: row.quality_check_id,
+    shipmentItemId: row.shipment_item_id,
+    itemSequenceNumber: Number(row.item_sequence_number),
+    status: row.status,
+    verifiedMaterialId: row.verified_material_id,
+    verifiedPurityId: row.verified_purity_id,
+    grossWeightGrams:
+      row.gross_weight_grams !== null
+        ? parseFloat(Number(row.gross_weight_grams).toFixed(4))
+        : null,
+    tareWeightGrams: parseFloat(Number(row.tare_weight_grams).toFixed(4)),
+    netWeightGrams:
+      row.net_weight_grams !== null
+        ? parseFloat(Number(row.net_weight_grams).toFixed(4))
+        : null,
+    stoneWeightCarats: parseFloat(Number(row.stone_weight_carats).toFixed(4)),
+    hallmarkVerified: row.hallmark_verified,
+    visualInspectionPassed: row.visual_inspection_passed,
+    damageDetected: row.damage_detected,
+    damageNotes: row.damage_notes,
+    rejectionReason: row.rejection_reason,
+    decisionByUserId: row.decision_by_user_id,
+    decisionAt: row.decision_at ? new Date(row.decision_at) : null,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+  };
+}
+
+export interface ItemGemstoneRow {
+  id: string;
+  quality_check_item_id: string;
+  inventory_item_id: string | null;
+  gemstone_id: string;
+  stone_type: StoneType;
+  stone_count: number | string;
+  carat_weight: string | number;
+  shape: string | null;
+  cut_grade: string | null;
+  color_grade: string | null;
+  clarity_grade: string | null;
+  certificate_number: string | null;
+  certificate_authority: CertificateAuthority | null;
+  certificate_file_id: string | null;
+  setting_verified: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export function mapRowToItemGemstone(row: ItemGemstoneRow): ItemGemstoneRecord {
+  return {
+    id: row.id,
+    qualityCheckItemId: row.quality_check_item_id,
+    inventoryItemId: row.inventory_item_id,
+    gemstoneId: row.gemstone_id,
+    stoneType: row.stone_type,
+    stoneCount: Number(row.stone_count),
+    caratWeight: parseFloat(Number(row.carat_weight).toFixed(4)),
+    shape: row.shape,
+    cutGrade: row.cut_grade,
+    colorGrade: row.color_grade,
+    clarityGrade: row.clarity_grade,
+    certificateNumber: row.certificate_number,
+    certificateAuthority: row.certificate_authority,
+    certificateFileId: row.certificate_file_id,
+    settingVerified: Boolean(row.setting_verified),
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+  };
+}
+
+export interface CreateQualityCheckItemParams {
+  id?: string;
+  qualityCheckId: string;
+  shipmentItemId: string;
+  itemSequenceNumber?: number;
+  status?: QualityCheckItemStatus;
+  verifiedMaterialId?: string | null;
+  verifiedPurityId?: string | null;
+  grossWeightGrams?: number | null;
+  tareWeightGrams?: number;
+  netWeightGrams?: number | null;
+  stoneWeightCarats?: number;
+  hallmarkVerified?: boolean | null;
+  visualInspectionPassed?: boolean | null;
+  damageDetected?: boolean | null;
+  damageNotes?: string | null;
+}
+
+export interface CreateItemGemstoneParams {
+  id?: string;
+  qualityCheckItemId: string;
+  inventoryItemId?: string | null;
+  gemstoneId: string;
+  stoneType: StoneType;
+  stoneCount: number;
+  caratWeight: number;
+  shape?: string | null;
+  cutGrade?: string | null;
+  colorGrade?: string | null;
+  clarityGrade?: string | null;
+  certificateNumber?: string | null;
+  certificateAuthority?: CertificateAuthority | null;
+  certificateFileId?: string | null;
+  settingVerified?: boolean;
+}
+
+/**
+ * Creates a piece-level technical inspection record (Entity 24).
+ */
+export async function createQualityCheckItem(
+  params: CreateQualityCheckItemParams,
+  clientOverride?: Queryable,
+): Promise<QualityCheckItemRecord> {
+  const executeCreation = async (client: Queryable) => {
+    let itemSequenceNumber = params.itemSequenceNumber;
+    if (!itemSequenceNumber) {
+      const seqRes = await client.query<{ next_seq: number }>(
+        `
+        SELECT COALESCE(MAX(item_sequence_number), 0) + 1 AS next_seq
+        FROM quality_check_items
+        WHERE quality_check_id = $1 AND shipment_item_id = $2
+        `,
+        [params.qualityCheckId, params.shipmentItemId],
+      );
+      itemSequenceNumber = Number(seqRes.rows[0]?.next_seq ?? 1);
+    }
+
+    const id = params.id ?? uuidv7();
+    const status = params.status ?? QualityCheckItemStatus.PENDING;
+    const tareWeightGrams = params.tareWeightGrams ?? 0;
+    const stoneWeightCarats = params.stoneWeightCarats ?? 0;
+
+    let netWeightGrams = params.netWeightGrams ?? null;
+    if (
+      params.grossWeightGrams !== undefined &&
+      params.grossWeightGrams !== null &&
+      netWeightGrams === null
+    ) {
+      netWeightGrams = calculateNetWeightGrams(
+        params.grossWeightGrams,
+        tareWeightGrams,
+        stoneWeightCarats,
+      );
+    }
+
+    const res = await client.query<QualityCheckItemRow>(
+      `
+      INSERT INTO quality_check_items (
+        id,
+        quality_check_id,
+        shipment_item_id,
+        item_sequence_number,
+        status,
+        verified_material_id,
+        verified_purity_id,
+        gross_weight_grams,
+        tare_weight_grams,
+        net_weight_grams,
+        stone_weight_carats,
+        hallmark_verified,
+        visual_inspection_passed,
+        damage_detected,
+        damage_notes,
+        created_at,
+        updated_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, clock_timestamp(), clock_timestamp())
+      RETURNING *
+      `,
+      [
+        id,
+        params.qualityCheckId,
+        params.shipmentItemId,
+        itemSequenceNumber,
+        status,
+        params.verifiedMaterialId ?? null,
+        params.verifiedPurityId ?? null,
+        params.grossWeightGrams ?? null,
+        tareWeightGrams,
+        netWeightGrams,
+        stoneWeightCarats,
+        params.hallmarkVerified ?? null,
+        params.visualInspectionPassed ?? null,
+        params.damageDetected ?? null,
+        params.damageNotes ?? null,
+      ],
+    );
+
+    const row = res.rows[0];
+    if (!row) {
+      throw new Error("Failed to insert quality check item record");
+    }
+
+    return mapRowToQualityCheckItem(row);
+  };
+
+  if (clientOverride) {
+    return executeCreation(clientOverride);
+  }
+
+  return withTransaction((tx) => executeCreation(tx.rawClient));
+}
+
+/**
+ * Retrieves a quality check item by ID.
+ */
+export async function getQualityCheckItemById(
+  id: string,
+  clientOverride?: Queryable,
+): Promise<QualityCheckItemRecord | null> {
+  const executor = clientOverride ?? getPool();
+  const res = await executor.query<QualityCheckItemRow>(
+    `SELECT * FROM quality_check_items WHERE id = $1`,
+    [id],
+  );
+  const row = res.rows[0];
+  if (!row) {
+    return null;
+  }
+  return mapRowToQualityCheckItem(row);
+}
+
+/**
+ * Retrieves a quality check item joined with its parent quality check session to check store and session status.
+ */
+export async function getQualityCheckItemWithSession(
+  id: string,
+  clientOverride?: Queryable,
+): Promise<{
+  item: QualityCheckItemRecord;
+  sessionStatus: QualityCheckStatusType;
+  storeId: string;
+} | null> {
+  const executor = clientOverride ?? getPool();
+  const res = await executor.query<
+    QualityCheckItemRow & {
+      session_status: QualityCheckStatusType;
+      store_id: string;
+    }
+  >(
+    `
+    SELECT
+      qci.*,
+      qc.status AS session_status,
+      qc.store_id
+    FROM quality_check_items qci
+    JOIN quality_checks qc ON qci.quality_check_id = qc.id
+    WHERE qci.id = $1
+    `,
+    [id],
+  );
+
+  const row = res.rows[0];
+  if (!row) {
+    return null;
+  }
+
+  return {
+    item: mapRowToQualityCheckItem(row),
+    sessionStatus: row.session_status,
+    storeId: row.store_id,
+  };
+}
+
+/**
+ * Adds a mounted gemstone or parcel to an inspected piece (Entity 26 - FEAT-QC-03).
+ *
+ * Atomically:
+ * 1. Verifies parent inspection session is not sealed (ERR_SESSION_SEALED, 422)
+ * 2. Enforces solitaire invariant: stone_type = PRIMARY_SOLITAIRE requires stone_count = 1
+ * 3. Inserts into item_gemstones
+ * 4. Recalculates total stone weight in carats and net metal weight:
+ *    Net = Gross - Tare - Stones (1 ct = 0.2000 g)
+ * 5. Updates summary weight fields on quality_check_items
+ */
+export async function addItemGemstone(
+  params: CreateItemGemstoneParams,
+  clientOverride?: Queryable,
+): Promise<{
+  gemstone: ItemGemstoneRecord;
+  qcItem: QualityCheckItemRecord;
+}> {
+  const executeOperation = async (client: Queryable) => {
+    // 1. Lock and retrieve quality_check_items joined with quality_checks
+    const itemRes = await client.query<
+      QualityCheckItemRow & { session_status: QualityCheckStatusType }
+    >(
+      `
+      SELECT
+        qci.*,
+        qc.status AS session_status
+      FROM quality_check_items qci
+      JOIN quality_checks qc ON qci.quality_check_id = qc.id
+      WHERE qci.id = $1
+      FOR UPDATE OF qci
+      `,
+      [params.qualityCheckItemId],
+    );
+
+    const itemRow = itemRes.rows[0];
+    if (!itemRow) {
+      throw new NotFoundError(
+        `Quality check item with ID '${params.qualityCheckItemId}' not found`,
+        "ERR_QC_ITEM_NOT_FOUND",
+      );
+    }
+
+    // 2. Sealed session gate
+    if (SEALED_QC_STATUSES.includes(itemRow.session_status)) {
+      throw new UnprocessableEntityError(
+        `Inspection session is ${itemRow.session_status} and sealed; gemstone additions are strictly prohibited`,
+        "ERR_SESSION_SEALED",
+      );
+    }
+
+    // 3. Solitaire invariant
+    if (params.stoneType === "PRIMARY_SOLITAIRE" && params.stoneCount !== 1) {
+      throw new BadRequestError(
+        "Solitaire stones must possess stone_count = 1",
+        "ERR_INVALID_STONE_COUNT",
+      );
+    }
+
+    if (params.caratWeight <= 0) {
+      throw new BadRequestError(
+        "Gemstone carat weight must be strictly positive (> 0) (INV-02)",
+        "ERR_INVALID_WEIGHT_VALUE",
+      );
+    }
+
+    // 4. Insert gemstone record
+    const gemstoneId = params.id ?? uuidv7();
+    const settingVerified = params.settingVerified ?? true;
+
+    const insertRes = await client.query<ItemGemstoneRow>(
+      `
+      INSERT INTO item_gemstones (
+        id,
+        quality_check_item_id,
+        inventory_item_id,
+        gemstone_id,
+        stone_type,
+        stone_count,
+        carat_weight,
+        shape,
+        cut_grade,
+        color_grade,
+        clarity_grade,
+        certificate_number,
+        certificate_authority,
+        certificate_file_id,
+        setting_verified,
+        created_at,
+        updated_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, clock_timestamp(), clock_timestamp())
+      RETURNING *
+      `,
+      [
+        gemstoneId,
+        params.qualityCheckItemId,
+        params.inventoryItemId ?? null,
+        params.gemstoneId,
+        params.stoneType,
+        params.stoneCount,
+        params.caratWeight,
+        params.shape ?? null,
+        params.cutGrade ?? null,
+        params.colorGrade ?? null,
+        params.clarityGrade ?? null,
+        params.certificateNumber ?? null,
+        params.certificateAuthority ?? null,
+        params.certificateFileId ?? null,
+        settingVerified,
+      ],
+    );
+
+    const createdStoneRow = insertRes.rows[0];
+    if (!createdStoneRow) {
+      throw new Error("Failed to insert gemstone record");
+    }
+
+    // 5. Aggregate cumulative stone carat weight
+    const sumRes = await client.query<{ total_carats: string | number }>(
+      `
+      SELECT COALESCE(SUM(carat_weight), 0) AS total_carats
+      FROM item_gemstones
+      WHERE quality_check_item_id = $1
+      `,
+      [params.qualityCheckItemId],
+    );
+    const totalStoneCarats = parseFloat(
+      Number(sumRes.rows[0]?.total_carats ?? 0).toFixed(4),
+    );
+
+    // 6. Recalculate net precious metal weight if gross weight exists
+    let updatedItemRow: QualityCheckItemRow;
+    const grossWeight =
+      itemRow.gross_weight_grams !== null
+        ? Number(itemRow.gross_weight_grams)
+        : null;
+    const tareWeight = Number(itemRow.tare_weight_grams ?? 0);
+
+    if (grossWeight !== null) {
+      const netWeight = calculateNetWeightGrams(
+        grossWeight,
+        tareWeight,
+        totalStoneCarats,
+      );
+
+      const updateRes = await client.query<QualityCheckItemRow>(
+        `
+        UPDATE quality_check_items
+        SET
+          stone_weight_carats = $2,
+          net_weight_grams = $3,
+          updated_at = clock_timestamp()
+        WHERE id = $1
+        RETURNING *
+        `,
+        [params.qualityCheckItemId, totalStoneCarats, netWeight],
+      );
+      updatedItemRow = updateRes.rows[0]!;
+    } else {
+      const updateRes = await client.query<QualityCheckItemRow>(
+        `
+        UPDATE quality_check_items
+        SET
+          stone_weight_carats = $2,
+          updated_at = clock_timestamp()
+        WHERE id = $1
+        RETURNING *
+        `,
+        [params.qualityCheckItemId, totalStoneCarats],
+      );
+      updatedItemRow = updateRes.rows[0]!;
+    }
+
+    return {
+      gemstone: mapRowToItemGemstone(createdStoneRow),
+      qcItem: mapRowToQualityCheckItem(updatedItemRow),
+    };
+  };
+
+  if (clientOverride) {
+    return executeOperation(clientOverride);
+  }
+
+  return withTransaction((tx) => executeOperation(tx.rawClient));
+}
+
+/**
+ * Lists all mounted gemstones and parcels for an inspected piece.
+ */
+export async function listItemGemstonesByQcItemId(
+  qcItemId: string,
+  clientOverride?: Queryable,
+): Promise<ItemGemstoneRecord[]> {
+  const executor = clientOverride ?? getPool();
+  const res = await executor.query<ItemGemstoneRow>(
+    `
+    SELECT *
+    FROM item_gemstones
+    WHERE quality_check_item_id = $1
+    ORDER BY created_at ASC
+    `,
+    [qcItemId],
+  );
+
+  return res.rows.map(mapRowToItemGemstone);
+}
+
+/**
+ * Retrieves a mounted gemstone record by ID.
+ */
+export async function getItemGemstoneById(
+  id: string,
+  clientOverride?: Queryable,
+): Promise<ItemGemstoneRecord | null> {
+  const executor = clientOverride ?? getPool();
+  const res = await executor.query<ItemGemstoneRow>(
+    `SELECT * FROM item_gemstones WHERE id = $1`,
+    [id],
+  );
+  const row = res.rows[0];
+  if (!row) {
+    return null;
+  }
+  return mapRowToItemGemstone(row);
 }

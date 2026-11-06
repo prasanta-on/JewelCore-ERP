@@ -17,6 +17,7 @@ import { migration00014CreateProcurementStaffAssignments } from "./00014_create_
 import { migration00015CreateGovernanceFileStorage } from "./00015_create_governance_file_storage.js";
 import { migration00016CreateQcQualityChecks } from "./00016_create_qc_quality_checks.js";
 import { migration00017CreateQcWeightMeasurements } from "./00017_create_qc_weight_measurements.js";
+import { migration00018CreateQcItemsAndGemstones } from "./00018_create_qc_items_and_gemstones.js";
 
 export const allMigrations: MigrationDefinition[] = [
   migration00001CreateIamOrganizationsAndStores,
@@ -36,6 +37,7 @@ export const allMigrations: MigrationDefinition[] = [
   migration00015CreateGovernanceFileStorage,
   migration00016CreateQcQualityChecks,
   migration00017CreateQcWeightMeasurements,
+  migration00018CreateQcItemsAndGemstones,
 ];
 
 /**
@@ -62,3 +64,4 @@ export * from "./00014_create_procurement_staff_assignments.js";
 export * from "./00015_create_governance_file_storage.js";
 export * from "./00016_create_qc_quality_checks.js";
 export * from "./00017_create_qc_weight_measurements.js";
+export * from "./00018_create_qc_items_and_gemstones.js";

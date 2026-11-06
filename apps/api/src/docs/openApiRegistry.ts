@@ -39,6 +39,8 @@ import {
   createQualityCheckSchema,
   updateQualityCheckSchema,
   createWeightMeasurementSchema,
+  createQualityCheckItemSchema,
+  createItemGemstoneSchema,
 } from "@jewelcore/shared";
 
 extendZodWithOpenApi(z);
@@ -1943,6 +1945,140 @@ registry.registerPath({
     },
     403: {
       description: "Insufficient permissions (requires qc:measure)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/qc/items",
+  summary: "Create QC Inspection Item (FEAT-QC-04)",
+  description:
+    "Creates a piece-level technical inspection record linked to a QC session and shipment item line.",
+  tags: ["Quality Control"],
+  security: [{ BearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: createQualityCheckItemSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "QC inspection item created successfully",
+    },
+    400: {
+      description: "Invalid item input or validation failure",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description: "Insufficient permissions or store context violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description: "Inspection session is sealed",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/qc/items/{id}/gemstones",
+  summary: "Grade and Mount Gemstone Parcel (FEAT-QC-03)",
+  description:
+    "Records a mounted gemstone or parcel on an inspected piece. Atomically recalculates net metal weight using Net = Gross - Tare - Stones formula (1 ct = 0.2000 g).",
+  tags: ["Quality Control"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      description: "QC inspection item UUID",
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: createItemGemstoneSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Gemstone graded and mounted successfully",
+    },
+    400: {
+      description: "Validation error or invalid stone count (INV-02)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description: "Insufficient permissions (requires qc:measure)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    404: {
+      description: "QC item not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description: "Inspection session is sealed",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/qc/items/{id}/gemstones",
+  summary: "List Mounted Gemstones for Item (FEAT-QC-03)",
+  description: "Lists all gemstones mounted on an inspected piece.",
+  tags: ["Quality Control"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      description: "QC inspection item UUID",
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: {
+      description: "Mounted gemstones retrieved successfully",
+    },
+    403: {
+      description: "Insufficient permissions or store context violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    404: {
+      description: "QC item not found",
       content: {
         "application/problem+json": { schema: ProblemDocumentSchema },
       },

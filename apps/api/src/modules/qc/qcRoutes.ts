@@ -12,6 +12,10 @@ import {
   createWeightMeasurementHandler,
   getWeightMeasurementHandler,
   listWeightMeasurementsHandler,
+  createQualityCheckItemHandler,
+  getQualityCheckItemHandler,
+  addItemGemstoneHandler,
+  listItemGemstonesHandler,
 } from "./qcController.js";
 
 export function createQcRouter(): Router {
@@ -45,6 +49,26 @@ export function createQcRouter(): Router {
   );
   router.get("/measurements", listWeightMeasurementsHandler);
   router.get("/measurements/:id", getWeightMeasurementHandler);
+
+  // QC Inspection Items (Entity 24 - FEAT-QC-04)
+  router.post(
+    "/items",
+    requirePermission("qc:create"),
+    createQualityCheckItemHandler,
+  );
+  router.get("/items/:id", getQualityCheckItemHandler);
+
+  // Mounted Gemstones & Parcels (Entity 26 - FEAT-QC-03 / DEC-05)
+  router.post(
+    "/items/:id/gemstones",
+    requirePermission("qc:measure"),
+    addItemGemstoneHandler,
+  );
+  router.get(
+    "/items/:id/gemstones",
+    requirePermission("qc:view"),
+    listItemGemstonesHandler,
+  );
 
   return router;
 }

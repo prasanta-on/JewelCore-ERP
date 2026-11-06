@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **Mounted Gemstone Carat Parcel Grading (`FEAT-QC-03`)**:
+  - Implemented `item_gemstones` (Entity 26) mounted stone and parcel grading engine:
+    - Supported stone types: `PRIMARY_SOLITAIRE`, `ACCENT_MELEE`, and `PARCEL`.
+    - Enforced single-stone invariant on primary solitaires (`chk_item_gemstones_solitaire`: `stone_type != 'PRIMARY_SOLITAIRE' OR stone_count = 1`).
+    - Stored gemstone carat weights under `DEC-05` standard (`NUMERIC(8, 4)` carats).
+  - Implemented `quality_check_items` (Entity 24) piece-level technical inspection table with 3VL checks and weight physics constraints.
+  - Implemented Net Metal Weight Calculation formula:
+    $$\text{Net} = \text{Gross} - \text{Tare} - \text{Stones} \quad (1\text{ carat} = 0.2000\text{ grams})$$
+    with automatic atomic synchronization on gemstone additions.
+  - Created endpoints `POST /api/v1/qc/items/:id/gemstones` and `GET /api/v1/qc/items/:id/gemstones` with RBAC authorization (`qc:measure` and `qc:view`), store-context isolation (`INV-11`), and sealed session protection (`ERR_SESSION_SEALED`, 422).
+- **Analytical Balance Metrology (`FEAT-QC-02`)**:
+  - Implemented `weight_measurements` (Entity 25) analytical balance scale reading ingestion with generated stored `net_weight` column.
+  - Enforced `INV-09` append-only immutability via PostgreSQL trigger `trg_weight_measurements_immutability`.
+  - Added endpoint `POST /api/v1/qc/measurements` with `qc:measure` permission check and positive weight physics validation (`INV-02`).
+- **Quality Inspection Sessions (`FEAT-QC-01`)**:
+  - Implemented `quality_checks` (Entity 23) inspection session headers with candidate key `(shipment_id, session_sequence_number)`.
+  - Enforced Sealed Session Immutability Gate (`ERR_SESSION_SEALED`, 422) and OCC concurrency.
+
+---
+
 ## [0.3.0] - 2026-11-07
 
 ### Added

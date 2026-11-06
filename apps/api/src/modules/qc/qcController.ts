@@ -3,6 +3,8 @@ import {
   createQualityCheckSchema,
   updateQualityCheckSchema,
   createWeightMeasurementSchema,
+  createQualityCheckItemSchema,
+  createItemGemstoneSchema,
   QualityCheckStatus,
   SEALED_QC_STATUSES,
   BadRequestError,
@@ -19,6 +21,10 @@ import {
   createWeightMeasurement,
   getWeightMeasurementById,
   listWeightMeasurements,
+  createQualityCheckItem,
+  getQualityCheckItemWithSession,
+  addItemGemstone,
+  listItemGemstonesByQcItemId,
 } from "@jewelcore/database";
 
 /**
@@ -345,6 +351,215 @@ export async function listWeightMeasurementsHandler(
     });
 
     res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Creates a piece-level technical inspection record (Entity 24 - FEAT-QC-04).
+ */
+export async function createQualityCheckItemHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const input = createQualityCheckItemSchema.parse(req.body);
+
+    const qcSession = await getQualityCheckById(input.qualityCheckId);
+    if (!qcSession) {
+      throw new NotFoundError(
+        `Quality inspection session with ID '${input.qualityCheckId}' not found`,
+        "ERR_QC_NOT_FOUND",
+      );
+    }
+
+    // Invariant INV-11: store context boundary check
+    const activeStoreId =
+      req.storeContext?.storeId ??
+      (typeof req.headers["x-store-id"] === "string"
+        ? req.headers["x-store-id"]
+        : undefined);
+
+    if (activeStoreId && activeStoreId !== qcSession.storeId) {
+      throw new ForbiddenError(
+        `Cross-store access denied: session belongs to store '${qcSession.storeId}', but request is scoped to '${activeStoreId}'`,
+        "ERR_STORE_ACCESS_DENIED",
+      );
+    }
+
+    // Sealed Session Gate
+    if (SEALED_QC_STATUSES.includes(qcSession.status)) {
+      throw new UnprocessableEntityError(
+        `Inspection session is ${qcSession.status} and sealed; adding inspection items is prohibited`,
+        "ERR_SESSION_SEALED",
+      );
+    }
+
+    const qcItem = await createQualityCheckItem(input);
+    res.status(201).json(qcItem);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Retrieves a quality check inspection item by primary ID.
+ */
+export async function getQualityCheckItemHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) {
+      throw new BadRequestError("Quality check item ID parameter is required");
+    }
+
+    const sessionContext = await getQualityCheckItemWithSession(id);
+    if (!sessionContext) {
+      throw new NotFoundError(
+        `Quality check item with ID '${id}' not found`,
+        "ERR_QC_ITEM_NOT_FOUND",
+      );
+    }
+
+    // Invariant INV-11: store context check
+    if (
+      req.storeContext?.storeId &&
+      req.storeContext.storeId !== sessionContext.storeId
+    ) {
+      throw new ForbiddenError(
+        "Access to the requested store context is denied",
+        "ERR_STORE_ACCESS_DENIED",
+      );
+    }
+
+    res.status(200).json(sessionContext.item);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Records a mounted gemstone or parcel on an inspected piece (FEAT-QC-03).
+ *
+ * Enforces:
+ * - qc:measure permission
+ * - Net Metal Weight Calculation Formula: Net = Gross - Tare - Stones (1 ct = 0.2000 g)
+ * - Solitaire single stone invariant
+ * - Multi-Store Isolation (INV-11)
+ * - Sealed session immutability
+ */
+export async function addItemGemstoneHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const itemId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+    if (!itemId) {
+      throw new BadRequestError("Quality check item ID parameter is required");
+    }
+
+    const sessionContext = await getQualityCheckItemWithSession(itemId);
+    if (!sessionContext) {
+      throw new NotFoundError(
+        `Quality check item with ID '${itemId}' not found`,
+        "ERR_QC_ITEM_NOT_FOUND",
+      );
+    }
+
+    // Invariant INV-11: verify cross-store boundary
+    const activeStoreId =
+      req.storeContext?.storeId ??
+      (typeof req.headers["x-store-id"] === "string"
+        ? req.headers["x-store-id"]
+        : undefined);
+
+    if (activeStoreId && activeStoreId !== sessionContext.storeId) {
+      throw new ForbiddenError(
+        `Cross-store access denied: QC item belongs to store '${sessionContext.storeId}', but request is scoped to '${activeStoreId}'`,
+        "ERR_STORE_ACCESS_DENIED",
+      );
+    }
+
+    // Sealed Session Gate
+    if (SEALED_QC_STATUSES.includes(sessionContext.sessionStatus)) {
+      throw new UnprocessableEntityError(
+        `Inspection session is ${sessionContext.sessionStatus} and sealed; gemstone additions are strictly prohibited`,
+        "ERR_SESSION_SEALED",
+      );
+    }
+
+    const input = createItemGemstoneSchema.parse(req.body);
+
+    const result = await addItemGemstone({
+      qualityCheckItemId: itemId,
+      gemstoneId: input.gemstoneId,
+      stoneType: input.stoneType,
+      stoneCount: input.stoneCount,
+      caratWeight: input.caratWeight,
+      shape: input.shape,
+      cutGrade: input.cutGrade,
+      colorGrade: input.colorGrade,
+      clarityGrade: input.clarityGrade,
+      certificateNumber: input.certificateNumber,
+      certificateAuthority: input.certificateAuthority,
+      certificateFileId: input.certificateFileId,
+      settingVerified: input.settingVerified,
+    });
+
+    res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Lists all mounted gemstones on an inspected piece.
+ */
+export async function listItemGemstonesHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const itemId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+    if (!itemId) {
+      throw new BadRequestError("Quality check item ID parameter is required");
+    }
+
+    const sessionContext = await getQualityCheckItemWithSession(itemId);
+    if (!sessionContext) {
+      throw new NotFoundError(
+        `Quality check item with ID '${itemId}' not found`,
+        "ERR_QC_ITEM_NOT_FOUND",
+      );
+    }
+
+    // Invariant INV-11: verify cross-store boundary
+    const activeStoreId =
+      req.storeContext?.storeId ??
+      (typeof req.headers["x-store-id"] === "string"
+        ? req.headers["x-store-id"]
+        : undefined);
+
+    if (activeStoreId && activeStoreId !== sessionContext.storeId) {
+      throw new ForbiddenError(
+        "Access to the requested store context is denied",
+        "ERR_STORE_ACCESS_DENIED",
+      );
+    }
+
+    const gemstones = await listItemGemstonesByQcItemId(itemId);
+    res.status(200).json(gemstones);
   } catch (err) {
     next(err);
   }

@@ -205,3 +205,179 @@ export interface WeightMeasurementRecord {
   measuredAt: Date;
   createdAt: Date;
 }
+
+// -------------------------------------------------------------
+// Gemstone Parcel Grading & Mounted Stones (FEAT-QC-03)
+// -------------------------------------------------------------
+
+export const StoneType = {
+  PRIMARY_SOLITAIRE: "PRIMARY_SOLITAIRE",
+  ACCENT_MELEE: "ACCENT_MELEE",
+  PARCEL: "PARCEL",
+} as const;
+
+export type StoneType = (typeof StoneType)[keyof typeof StoneType];
+
+export const CertificateAuthority = {
+  GIA: "GIA",
+  IGI: "IGI",
+  AGS: "AGS",
+  HRD: "HRD",
+  IN_HOUSE: "IN_HOUSE",
+} as const;
+
+export type CertificateAuthority =
+  (typeof CertificateAuthority)[keyof typeof CertificateAuthority];
+
+export const CARATS_TO_GRAMS = 0.2;
+
+/**
+ * Calculates net precious metal weight:
+ * Net = Gross - Tare - (Total Stone Carats * 0.2000 g/ct)
+ * Guaranteed to 4 decimal places (DEC-05).
+ */
+export function calculateNetWeightGrams(
+  grossWeightGrams: number,
+  tareWeightGrams: number = 0,
+  stoneWeightCarats: number = 0,
+): number {
+  const stoneWeightGrams = stoneWeightCarats * CARATS_TO_GRAMS;
+  const net = grossWeightGrams - tareWeightGrams - stoneWeightGrams;
+  return parseFloat(net.toFixed(4));
+}
+
+export const QualityCheckItemStatus = {
+  PENDING: "PENDING",
+  APPROVED: "APPROVED",
+  REJECTED: "REJECTED",
+} as const;
+
+export type QualityCheckItemStatus =
+  (typeof QualityCheckItemStatus)[keyof typeof QualityCheckItemStatus];
+
+export const createQualityCheckItemSchema = z.object({
+  qualityCheckId: z.string().uuid("qualityCheckId must be a valid UUID"),
+  shipmentItemId: z.string().uuid("shipmentItemId must be a valid UUID"),
+  itemSequenceNumber: z.number().int().min(1).optional(),
+  verifiedMaterialId: z
+    .string()
+    .uuid("verifiedMaterialId must be a valid UUID")
+    .optional()
+    .nullable(),
+  verifiedPurityId: z
+    .string()
+    .uuid("verifiedPurityId must be a valid UUID")
+    .optional()
+    .nullable(),
+  grossWeightGrams: z
+    .number()
+    .positive("grossWeightGrams must be strictly positive (> 0)")
+    .optional()
+    .nullable(),
+  tareWeightGrams: z
+    .number()
+    .nonnegative("tareWeightGrams cannot be negative")
+    .default(0),
+  netWeightGrams: z
+    .number()
+    .positive("netWeightGrams must be strictly positive (> 0)")
+    .optional()
+    .nullable(),
+  hallmarkVerified: z.boolean().optional().nullable(),
+  visualInspectionPassed: z.boolean().optional().nullable(),
+  damageDetected: z.boolean().optional().nullable(),
+  damageNotes: z.string().optional().nullable(),
+});
+
+export type CreateQualityCheckItemInput = z.infer<
+  typeof createQualityCheckItemSchema
+>;
+
+export interface QualityCheckItemRecord {
+  id: string;
+  qualityCheckId: string;
+  shipmentItemId: string;
+  itemSequenceNumber: number;
+  status: QualityCheckItemStatus;
+  verifiedMaterialId: string | null;
+  verifiedPurityId: string | null;
+  grossWeightGrams: number | null;
+  tareWeightGrams: number;
+  netWeightGrams: number | null;
+  stoneWeightCarats: number;
+  hallmarkVerified: boolean | null;
+  visualInspectionPassed: boolean | null;
+  damageDetected: boolean | null;
+  damageNotes: string | null;
+  rejectionReason: string | null;
+  decisionByUserId: string | null;
+  decisionAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export const createItemGemstoneSchema = z
+  .object({
+    gemstoneId: z.string().uuid("gemstoneId must be a valid UUID"),
+    stoneType: z.enum([
+      StoneType.PRIMARY_SOLITAIRE,
+      StoneType.ACCENT_MELEE,
+      StoneType.PARCEL,
+    ]),
+    stoneCount: z.number().int().min(1, "stoneCount must be at least 1"),
+    caratWeight: z
+      .number()
+      .positive("caratWeight must be strictly positive (> 0) (INV-02)"),
+    shape: z.string().max(50).optional().nullable(),
+    cutGrade: z.string().max(50).optional().nullable(),
+    colorGrade: z.string().max(50).optional().nullable(),
+    clarityGrade: z.string().max(50).optional().nullable(),
+    certificateNumber: z.string().max(100).optional().nullable(),
+    certificateAuthority: z
+      .enum(["GIA", "IGI", "AGS", "HRD", "IN_HOUSE"])
+      .optional()
+      .nullable(),
+    certificateFileId: z
+      .string()
+      .uuid("certificateFileId must be a valid UUID")
+      .optional()
+      .nullable(),
+    settingVerified: z.boolean().default(true),
+  })
+  .refine(
+    (data) => {
+      if (
+        data.stoneType === StoneType.PRIMARY_SOLITAIRE &&
+        data.stoneCount !== 1
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Solitaire stones must possess stone_count = 1",
+      path: ["stoneCount"],
+    },
+  );
+
+export type CreateItemGemstoneInput = z.infer<typeof createItemGemstoneSchema>;
+
+export interface ItemGemstoneRecord {
+  id: string;
+  qualityCheckItemId: string;
+  inventoryItemId: string | null;
+  gemstoneId: string;
+  stoneType: StoneType;
+  stoneCount: number;
+  caratWeight: number;
+  shape: string | null;
+  cutGrade: string | null;
+  colorGrade: string | null;
+  clarityGrade: string | null;
+  certificateNumber: string | null;
+  certificateAuthority: CertificateAuthority | null;
+  certificateFileId: string | null;
+  settingVerified: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
