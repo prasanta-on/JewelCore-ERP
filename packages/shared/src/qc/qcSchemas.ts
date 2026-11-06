@@ -336,11 +336,47 @@ export const updateQualityCheckItemSchema = z.object({
   rejectionReason: z.string().optional().nullable(),
   isSupervisorWaiver: z.boolean().optional(),
   waiverNotes: z.string().optional().nullable(),
+  overrideTolerance: z.boolean().optional(),
+  toleranceOverrideReason: z.string().optional().nullable(),
+  absoluteToleranceGrams: z
+    .number()
+    .positive("absoluteToleranceGrams must be strictly positive (> 0)")
+    .optional(),
 });
 
 export type UpdateQualityCheckItemInput = z.infer<
   typeof updateQualityCheckItemSchema
 >;
+
+// -------------------------------------------------------------
+// Intake Weight Tolerance & Discrepancy Gate (FEAT-QC-05 / INV-12)
+// -------------------------------------------------------------
+
+export const evaluateToleranceSchema = z.object({
+  absoluteToleranceGrams: z
+    .number()
+    .positive("absoluteToleranceGrams must be strictly positive (> 0)")
+    .optional(),
+  relativeTolerancePercent: z
+    .number()
+    .positive("relativeTolerancePercent must be strictly positive (> 0)")
+    .optional(),
+});
+
+export type EvaluateToleranceInput = z.infer<typeof evaluateToleranceSchema>;
+
+export interface ToleranceEvaluationResult {
+  qualityCheckItemId: string;
+  shipmentItemId: string;
+  declaredGrossWeightGrams: number | null;
+  measuredGrossWeightGrams: number;
+  varianceDeltaGrams: number | null;
+  allowedToleranceGrams: number;
+  isWithinTolerance: boolean;
+  hasDeclaredWeight: boolean;
+  reconciliationStatus: "MATCHED" | "DISCREPANCY" | "PENDING";
+  discrepancyReason: string | null;
+}
 
 export interface QualityCheckItemRecord {
   id: string;

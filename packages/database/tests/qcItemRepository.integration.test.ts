@@ -193,8 +193,8 @@ describe("QC Item 3VL Inspection & Completeness Gate Repository (FEAT-QC-04 / IN
       productSkuId: sku.id,
       lineNumber: 1,
       supplierItemCode: "ART-B01",
-      declaredPieceCount: 2,
-      declaredGrossWeightGrams: 30.0,
+      declaredPieceCount: 1,
+      declaredGrossWeightGrams: 15.0,
     });
     shipmentItemId = item.id;
 

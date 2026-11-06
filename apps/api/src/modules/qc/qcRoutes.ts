@@ -18,6 +18,7 @@ import {
   listQualityCheckItemsHandler,
   addItemGemstoneHandler,
   listItemGemstonesHandler,
+  evaluateItemToleranceHandler,
 } from "./qcController.js";
 
 export function createQcRouter(): Router {
@@ -73,6 +74,13 @@ export function createQcRouter(): Router {
     "/items/:id",
     requirePermission("qc:inspect"),
     updateQualityCheckItemHandler,
+  );
+
+  // Intake Weight Tolerance & Discrepancy Gate (FEAT-QC-05 / INV-12)
+  router.post(
+    "/items/:id/tolerance-check",
+    requirePermission("qc:inspect"),
+    evaluateItemToleranceHandler,
   );
 
   // Mounted Gemstones & Parcels (Entity 26 - FEAT-QC-03 / DEC-05)

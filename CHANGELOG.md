@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Intake Weight Tolerance & Discrepancy Gate (`FEAT-QC-05` / `INV-12`)**:
+  - Implemented configurable intake weight discrepancy evaluation engine:
+    - Default $\pm 0.0200\text{g}$ absolute tolerance threshold under `BIZ-Q03` baseline.
+    - Automatic clearance for within-tolerance pieces ($\Delta \le \pm 0.0200\text{g}$), updating `shipment_items.reconciliation_status = 'MATCHED'` and enabling piece approval.
+    - Out-of-tolerance discrepancy escrow ($\Delta > \pm 0.0200\text{g}$), flagging `shipment_items.reconciliation_status = 'DISCREPANCY'` and blocking automated approval (`ERR_WEIGHT_TOLERANCE_EXCEEDED`, 422).
+    - Strict fail-closed missing weight protocol: manifest lines with missing declared gross weight (`NULL`) flag discrepancy and block automated approval (`ERR_MISSING_DECLARED_WEIGHT`, 422).
+    - Authorized administrative override: permission `qc:tolerance:admin` seeded in migration `00019_create_qc_tolerance_permissions` to authorize discrepancy overrides with audit justification, while rejecting unauthorized override attempts with 403 (`ERR_INSUFFICIENT_PERMISSIONS`).
+    - Sealed session immutability gate: tolerance evaluation on sealed sessions rejected with 422 (`ERR_SESSION_SEALED`).
+  - Added endpoint `POST /api/v1/qc/items/:id/tolerance-check` with active store-context scoping (`INV-11`) and OpenAPI 3.1 schema registration.
 - **QC Item 3VL Inspection & Completeness Gate (`FEAT-QC-04`)**:
   - Implemented piece-level 3VL (Three-Valued Logic) quality inspection workflows for `quality_check_items` (Entity 24):
     - Rigorous 3VL boolean predicates (`hallmark_verified IS TRUE`, `visual_inspection_passed IS TRUE`) preventing unperformed inspections (`NULL` evaluating to `UNKNOWN`) from passing approval.

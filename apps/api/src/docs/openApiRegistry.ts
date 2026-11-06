@@ -42,6 +42,7 @@ import {
   createQualityCheckItemSchema,
   updateQualityCheckItemSchema,
   createItemGemstoneSchema,
+  evaluateToleranceSchema,
 } from "@jewelcore/shared";
 
 extendZodWithOpenApi(z);
@@ -2080,6 +2081,65 @@ registry.registerPath({
     },
     404: {
       description: "QC session not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/qc/items/{id}/tolerance-check",
+  summary: "Evaluate Intake Weight Tolerance (FEAT-QC-05 / INV-12)",
+  description:
+    "Evaluates intake weight tolerance comparing measured gross weight against manifest declared gross weight (±0.0200g BIZ-Q03 baseline). Sets reconciliation status to MATCHED or DISCREPANCY and enforces fail-closed missing weight protocol.",
+  tags: ["Quality Control"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      description: "QC inspection item UUID",
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: evaluateToleranceSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Intake weight tolerance evaluated successfully",
+    },
+    400: {
+      description: "Invalid tolerance check parameters",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description:
+        "Insufficient permissions (requires qc:tolerance:admin for custom limits) or store context violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    404: {
+      description: "QC item not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description:
+        "Inspection session sealed or missing scale gross weight measurement",
       content: {
         "application/problem+json": { schema: ProblemDocumentSchema },
       },

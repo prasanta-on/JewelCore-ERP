@@ -6,6 +6,7 @@ import {
   createQualityCheckItemSchema,
   updateQualityCheckItemSchema,
   createItemGemstoneSchema,
+  evaluateToleranceSchema,
   QualityCheckStatus,
   SEALED_QC_STATUSES,
   BadRequestError,
@@ -28,6 +29,9 @@ import {
   listQualityCheckItemsBySessionId,
   addItemGemstone,
   listItemGemstonesByQcItemId,
+  evaluateIntakeWeightTolerance,
+  getUserRoles,
+  getUserPermissionCodes,
 } from "@jewelcore/database";
 
 /**
@@ -499,15 +503,98 @@ export async function updateQualityCheckItemHandler(
 
     const input = updateQualityCheckItemSchema.parse(req.body);
 
+    const userRoles = await getUserRoles(req.user!.userId);
+    const isSystemAdmin = userRoles.some((r) => r.code === "SYSTEM_ADMIN");
+    const userPermissions = await getUserPermissionCodes(req.user!.userId);
+    const hasToleranceAdmin =
+      isSystemAdmin || userPermissions.includes("qc:tolerance:admin");
+
     const updatedItem = await updateQualityCheckItem(id, input, {
       userId: req.user!.userId,
       role:
         typeof (req.user as any)?.role === "string"
           ? (req.user as any).role
-          : undefined,
+          : isSystemAdmin
+            ? "SYSTEM_ADMIN"
+            : undefined,
+      hasToleranceAdminPermission: hasToleranceAdmin,
+      permissions: userPermissions,
     });
 
     res.status(200).json(updatedItem);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Evaluates intake weight tolerance for a QC item against its parent shipment manifest line (FEAT-QC-05 / INV-12).
+ *
+ * Enforces:
+ * - Scenario 1: Within tolerance clearance (sets reconciliation_status = 'MATCHED')
+ * - Scenario 2: Out of tolerance discrepancy escrow (sets reconciliation_status = 'DISCREPANCY')
+ * - Scenario 3: Missing declared weight fail-closed rejection (sets reconciliation_status = 'DISCREPANCY')
+ * - Scenario 4: Admin permission check for custom tolerance limits (qc:tolerance:admin)
+ * - Multi-Store Isolation (INV-11)
+ * - Sealed Session Gate (ERR_SESSION_SEALED)
+ */
+export async function evaluateItemToleranceHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) {
+      throw new BadRequestError("Quality check item ID parameter is required");
+    }
+
+    const sessionContext = await getQualityCheckItemWithSession(id);
+    if (!sessionContext) {
+      throw new NotFoundError(
+        `Quality check item with ID '${id}' not found`,
+        "ERR_QC_ITEM_NOT_FOUND",
+      );
+    }
+
+    // Invariant INV-11: store context check
+    const activeStoreId =
+      req.storeContext?.storeId ??
+      (typeof req.headers["x-store-id"] === "string"
+        ? req.headers["x-store-id"]
+        : undefined);
+
+    if (activeStoreId && activeStoreId !== sessionContext.storeId) {
+      throw new ForbiddenError(
+        `Cross-store access denied: session belongs to store '${sessionContext.storeId}', but request is scoped to '${activeStoreId}'`,
+        "ERR_STORE_ACCESS_DENIED",
+      );
+    }
+
+    // Sealed Session Gate
+    if (SEALED_QC_STATUSES.includes(sessionContext.sessionStatus)) {
+      throw new UnprocessableEntityError(
+        `Inspection session is ${sessionContext.sessionStatus} and sealed; modifications are strictly prohibited`,
+        "ERR_SESSION_SEALED",
+      );
+    }
+
+    const input = evaluateToleranceSchema.parse(req.body ?? {});
+
+    const userRoles = await getUserRoles(req.user!.userId);
+    const isSystemAdmin = userRoles.some((r) => r.code === "SYSTEM_ADMIN");
+    const userPermissions = await getUserPermissionCodes(req.user!.userId);
+    const hasToleranceAdmin =
+      isSystemAdmin || userPermissions.includes("qc:tolerance:admin");
+
+    const result = await evaluateIntakeWeightTolerance(id, input, {
+      userId: req.user!.userId,
+      role: isSystemAdmin ? "SYSTEM_ADMIN" : undefined,
+      hasToleranceAdminPermission: hasToleranceAdmin,
+      permissions: userPermissions,
+    });
+
+    res.status(200).json(result);
   } catch (err) {
     next(err);
   }

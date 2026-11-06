@@ -18,6 +18,8 @@ import {
   UnprocessableEntityError,
   NotFoundError,
   BadRequestError,
+  ForbiddenError,
+  type ToleranceEvaluationResult,
 } from "@jewelcore/shared";
 import { getPool } from "../pool.js";
 import { uuidv7 } from "../uuidv7.js";
@@ -785,6 +787,9 @@ export interface UpdateQualityCheckItemParams {
   isSupervisorWaiver?: boolean;
   waiverNotes?: string | null;
   decisionByUserId?: string | null;
+  overrideTolerance?: boolean;
+  toleranceOverrideReason?: string | null;
+  absoluteToleranceGrams?: number;
 }
 
 /**
@@ -1185,7 +1190,12 @@ export async function getItemGemstoneById(
 export async function updateQualityCheckItem(
   id: string,
   params: UpdateQualityCheckItemParams,
-  userContext?: { userId: string; role?: string },
+  userContext?: {
+    userId: string;
+    role?: string;
+    hasToleranceAdminPermission?: boolean;
+    permissions?: string[];
+  },
   clientOverride?: Queryable,
 ): Promise<QualityCheckItemRecord> {
   const executeUpdate = async (client: Queryable) => {
@@ -1379,6 +1389,147 @@ export async function updateQualityCheckItem(
         );
       }
 
+      // Tier C.2 Verification: Intake Weight Tolerance Gate (FEAT-QC-05 / INV-12)
+      const shipmentItemRes = await client.query<{
+        id: string;
+        declared_gross_weight_grams: string | number | null;
+      }>(
+        `SELECT id, declared_gross_weight_grams FROM shipment_items WHERE id = $1 FOR SHARE`,
+        [current.shipment_item_id],
+      );
+      const shipmentItem = shipmentItemRes.rows[0];
+
+      const declaredGrossWeight =
+        shipmentItem?.declared_gross_weight_grams !== null &&
+        shipmentItem?.declared_gross_weight_grams !== undefined
+          ? Number(shipmentItem.declared_gross_weight_grams)
+          : null;
+
+      const defaultTolerance = 0.02;
+      const allowedTolerance =
+        params.absoluteToleranceGrams ?? defaultTolerance;
+
+      const hasToleranceAdmin =
+        userContext?.hasToleranceAdminPermission ||
+        userContext?.role === "SYSTEM_ADMIN" ||
+        userContext?.permissions?.includes("qc:tolerance:admin");
+
+      if (declaredGrossWeight === null) {
+        // Missing declared weight
+        if (params.overrideTolerance) {
+          if (!hasToleranceAdmin) {
+            throw new ForbiddenError(
+              "User lacks 'qc:tolerance:admin' permission to override missing declared weight",
+              "ERR_INSUFFICIENT_PERMISSIONS",
+            );
+          }
+          await client.query(
+            `
+            UPDATE shipment_items
+            SET
+              reconciliation_status = 'MATCHED',
+              measured_gross_weight_grams = $2,
+              discrepancy_reason = $3,
+              updated_at = clock_timestamp()
+            WHERE id = $1
+            `,
+            [
+              current.shipment_item_id,
+              grossWeightGrams,
+              `Missing declared weight override authorized by admin: ${params.toleranceOverrideReason ?? "Administrative approval"}`,
+            ],
+          );
+        } else {
+          await client.query(
+            `
+            UPDATE shipment_items
+            SET
+              reconciliation_status = 'DISCREPANCY',
+              discrepancy_reason = 'Shipment manifest line is missing declared gross weight',
+              measured_gross_weight_grams = $2,
+              updated_at = clock_timestamp()
+            WHERE id = $1
+            `,
+            [current.shipment_item_id, grossWeightGrams],
+          );
+          throw new UnprocessableEntityError(
+            "Automatic approval blocked: shipment item is missing declared gross weight on manifest (INV-12 fail-closed)",
+            "ERR_MISSING_DECLARED_WEIGHT",
+          );
+        }
+      } else {
+        const delta = Number(
+          Math.abs(grossWeightGrams - declaredGrossWeight).toFixed(4),
+        );
+        if (delta > allowedTolerance) {
+          if (params.overrideTolerance) {
+            if (!hasToleranceAdmin) {
+              throw new ForbiddenError(
+                "User lacks 'qc:tolerance:admin' permission to override weight tolerance variance",
+                "ERR_INSUFFICIENT_PERMISSIONS",
+              );
+            }
+            await client.query(
+              `
+              UPDATE shipment_items
+              SET
+                reconciliation_status = 'MATCHED',
+                measured_gross_weight_grams = $2,
+                discrepancy_reason = $3,
+                updated_at = clock_timestamp()
+              WHERE id = $1
+              `,
+              [
+                current.shipment_item_id,
+                grossWeightGrams,
+                `Variance of ${delta.toFixed(4)}g override authorized by admin: ${params.toleranceOverrideReason ?? "Administrative approval"}`,
+              ],
+            );
+          } else {
+            await client.query(
+              `
+              UPDATE shipment_items
+              SET
+                reconciliation_status = 'DISCREPANCY',
+                discrepancy_reason = $2,
+                measured_gross_weight_grams = $3,
+                updated_at = clock_timestamp()
+              WHERE id = $1
+              `,
+              [
+                current.shipment_item_id,
+                `Measured weight variance of ${delta.toFixed(4)}g exceeds allowable tolerance of ±${allowedTolerance.toFixed(4)}g`,
+                grossWeightGrams,
+              ],
+            );
+            throw new UnprocessableEntityError(
+              `Intake weight variance of ${delta.toFixed(4)}g exceeds allowable tolerance of ±${allowedTolerance.toFixed(4)}g (INV-12)`,
+              "ERR_WEIGHT_TOLERANCE_EXCEEDED",
+              {
+                declaredGrossWeight,
+                grossWeightGrams,
+                delta,
+                allowedTolerance,
+              },
+            );
+          }
+        } else {
+          // Within tolerance
+          await client.query(
+            `
+            UPDATE shipment_items
+            SET
+              reconciliation_status = 'MATCHED',
+              measured_gross_weight_grams = $2,
+              discrepancy_reason = NULL,
+              updated_at = clock_timestamp()
+            WHERE id = $1
+            `,
+            [current.shipment_item_id, grossWeightGrams],
+          );
+        }
+      }
+
       decisionByUserId =
         params.decisionByUserId ??
         userContext?.userId ??
@@ -1470,4 +1621,212 @@ export async function listQualityCheckItemsBySessionId(
   );
 
   return res.rows.map(mapRowToQualityCheckItem);
+}
+
+export interface EvaluateIntakeWeightToleranceParams {
+  absoluteToleranceGrams?: number;
+  relativeTolerancePercent?: number;
+}
+
+/**
+ * Evaluates intake weight tolerance for a QC item against its parent shipment item (FEAT-QC-05 / INV-12).
+ *
+ * Implements:
+ * - Scenario 1: Within tolerance clearance (sets reconciliation_status = 'MATCHED')
+ * - Scenario 2: Out of tolerance discrepancy escrow (sets reconciliation_status = 'DISCREPANCY')
+ * - Scenario 3: Fail-closed missing declared weight handling (sets reconciliation_status = 'DISCREPANCY')
+ * - Scenario 4: Admin permission check for custom tolerance parameters (qc:tolerance:admin)
+ * - Sealed session immutability gate (ERR_SESSION_SEALED)
+ */
+export async function evaluateIntakeWeightTolerance(
+  qualityCheckItemId: string,
+  params: EvaluateIntakeWeightToleranceParams = {},
+  userContext?: {
+    userId?: string;
+    role?: string;
+    hasToleranceAdminPermission?: boolean;
+    permissions?: string[];
+  },
+  clientOverride?: Queryable,
+): Promise<ToleranceEvaluationResult> {
+  const executeEvaluation = async (client: Queryable) => {
+    // 1. Fetch item with parent session and shipment item
+    const itemRes = await client.query<{
+      qc_item_id: string;
+      quality_check_id: string;
+      shipment_item_id: string;
+      gross_weight_grams: string | number | null;
+      item_status: QualityCheckItemStatus;
+      session_status: QualityCheckStatusType;
+      store_id: string;
+      declared_gross_weight_grams: string | number | null;
+      measured_gross_weight_grams: string | number | null;
+      reconciliation_status: string;
+      discrepancy_reason: string | null;
+    }>(
+      `
+      SELECT
+        qci.id AS qc_item_id,
+        qci.quality_check_id,
+        qci.shipment_item_id,
+        qci.gross_weight_grams,
+        qci.status AS item_status,
+        qc.status AS session_status,
+        qc.store_id,
+        si.declared_gross_weight_grams,
+        si.measured_gross_weight_grams,
+        si.reconciliation_status,
+        si.discrepancy_reason
+      FROM quality_check_items qci
+      JOIN quality_checks qc ON qci.quality_check_id = qc.id
+      JOIN shipment_items si ON qci.shipment_item_id = si.id
+      WHERE qci.id = $1
+      FOR UPDATE OF qci
+      `,
+      [qualityCheckItemId],
+    );
+
+    const row = itemRes.rows[0];
+    if (!row) {
+      throw new NotFoundError(
+        `Quality check item with ID '${qualityCheckItemId}' not found`,
+        "ERR_QC_ITEM_NOT_FOUND",
+      );
+    }
+
+    // 2. Sealed session immutability gate
+    if (SEALED_QC_STATUSES.includes(row.session_status)) {
+      throw new UnprocessableEntityError(
+        `Inspection session is ${row.session_status} and sealed; modifications are strictly prohibited`,
+        "ERR_SESSION_SEALED",
+      );
+    }
+
+    // 3. Observed gross weight requirement
+    if (
+      row.gross_weight_grams === null ||
+      Number(row.gross_weight_grams) <= 0
+    ) {
+      throw new UnprocessableEntityError(
+        "Analytical balance scale gross weight reading is required before tolerance evaluation (INV-12)",
+        "ERR_MISSING_SCALE_OBSERVATION",
+      );
+    }
+
+    const measuredGrossWeightGrams = Number(row.gross_weight_grams);
+    const declaredGrossWeight =
+      row.declared_gross_weight_grams !== null
+        ? Number(row.declared_gross_weight_grams)
+        : null;
+
+    // Check custom tolerance permissions
+    const defaultTolerance = 0.02; // ±0.0200g BIZ-Q03 baseline
+    const allowedToleranceGrams =
+      params.absoluteToleranceGrams ?? defaultTolerance;
+
+    if (
+      params.absoluteToleranceGrams !== undefined &&
+      params.absoluteToleranceGrams !== defaultTolerance
+    ) {
+      const hasToleranceAdmin =
+        userContext?.hasToleranceAdminPermission ||
+        userContext?.role === "SYSTEM_ADMIN" ||
+        userContext?.permissions?.includes("qc:tolerance:admin");
+      if (!hasToleranceAdmin) {
+        throw new ForbiddenError(
+          "User lacks 'qc:tolerance:admin' permission to configure custom tolerance limits",
+          "ERR_INSUFFICIENT_PERMISSIONS",
+        );
+      }
+    }
+
+    let isWithinTolerance = false;
+    let hasDeclaredWeight = false;
+    let varianceDeltaGrams: number | null = null;
+    let reconciliationStatus: "MATCHED" | "DISCREPANCY" = "DISCREPANCY";
+    let discrepancyReason: string | null = null;
+
+    if (declaredGrossWeight === null) {
+      // Scenario 3: Fail-closed on missing declared gross weight
+      hasDeclaredWeight = false;
+      isWithinTolerance = false;
+      reconciliationStatus = "DISCREPANCY";
+      discrepancyReason =
+        "Shipment manifest line is missing declared gross weight";
+
+      await client.query(
+        `
+        UPDATE shipment_items
+        SET
+          reconciliation_status = 'DISCREPANCY',
+          discrepancy_reason = $2,
+          measured_gross_weight_grams = $3,
+          updated_at = clock_timestamp()
+        WHERE id = $1
+        `,
+        [row.shipment_item_id, discrepancyReason, measuredGrossWeightGrams],
+      );
+    } else {
+      hasDeclaredWeight = true;
+      varianceDeltaGrams = Number(
+        Math.abs(measuredGrossWeightGrams - declaredGrossWeight).toFixed(4),
+      );
+
+      if (varianceDeltaGrams <= allowedToleranceGrams) {
+        // Scenario 1: Within tolerance clearance
+        isWithinTolerance = true;
+        reconciliationStatus = "MATCHED";
+        discrepancyReason = null;
+
+        await client.query(
+          `
+          UPDATE shipment_items
+          SET
+            reconciliation_status = 'MATCHED',
+            discrepancy_reason = NULL,
+            measured_gross_weight_grams = $2,
+            updated_at = clock_timestamp()
+          WHERE id = $1
+          `,
+          [row.shipment_item_id, measuredGrossWeightGrams],
+        );
+      } else {
+        // Scenario 2: Out of tolerance discrepancy
+        isWithinTolerance = false;
+        reconciliationStatus = "DISCREPANCY";
+        discrepancyReason = `Measured weight variance of ${varianceDeltaGrams.toFixed(4)}g exceeds allowable tolerance of ±${allowedToleranceGrams.toFixed(4)}g`;
+
+        await client.query(
+          `
+          UPDATE shipment_items
+          SET
+            reconciliation_status = 'DISCREPANCY',
+            discrepancy_reason = $2,
+            measured_gross_weight_grams = $3,
+            updated_at = clock_timestamp()
+          WHERE id = $1
+          `,
+          [row.shipment_item_id, discrepancyReason, measuredGrossWeightGrams],
+        );
+      }
+    }
+
+    return {
+      qualityCheckItemId,
+      shipmentItemId: row.shipment_item_id,
+      declaredGrossWeightGrams: declaredGrossWeight,
+      measuredGrossWeightGrams,
+      varianceDeltaGrams,
+      allowedToleranceGrams,
+      isWithinTolerance,
+      hasDeclaredWeight,
+      reconciliationStatus,
+      discrepancyReason,
+    };
+  };
+
+  if (clientOverride) {
+    return executeEvaluation(clientOverride);
+  }
+  return withTransaction((tx) => executeEvaluation(tx.rawClient));
 }
