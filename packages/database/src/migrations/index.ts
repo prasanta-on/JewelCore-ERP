@@ -20,6 +20,7 @@ import { migration00017CreateQcWeightMeasurements } from "./00017_create_qc_weig
 import { migration00018CreateQcItemsAndGemstones } from "./00018_create_qc_items_and_gemstones.js";
 import { migration00019CreateQcTolerancePermissions } from "./00019_create_qc_tolerance_permissions.js";
 import { migration00020CreateQcDecisions } from "./00020_create_qc_decisions.js";
+import { migration00021CreateInventoryItems } from "./00021_create_inventory_items.js";
 
 export const allMigrations: MigrationDefinition[] = [
   migration00001CreateIamOrganizationsAndStores,
@@ -42,6 +43,7 @@ export const allMigrations: MigrationDefinition[] = [
   migration00018CreateQcItemsAndGemstones,
   migration00019CreateQcTolerancePermissions,
   migration00020CreateQcDecisions,
+  migration00021CreateInventoryItems,
 ];
 
 /**

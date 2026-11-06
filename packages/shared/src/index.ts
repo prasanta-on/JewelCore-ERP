@@ -162,3 +162,4 @@ export * from "./taxonomy/index.js";
 export * from "./procurement/index.js";
 export * from "./governance/index.js";
 export * from "./qc/index.js";
+export * from "./inventory/index.js";

@@ -44,6 +44,7 @@ import {
   createItemGemstoneSchema,
   evaluateToleranceSchema,
   createQualityDecisionSchema,
+  birthInventoryItemSchema,
 } from "@jewelcore/shared";
 
 extendZodWithOpenApi(z);
@@ -2422,6 +2423,179 @@ registry.registerPath({
     },
     404: {
       description: "QC session not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/inventory/items/birth",
+  summary:
+    "Birth Serialized Inventory Piece from Approved QC Item (FEAT-INV-01)",
+  description:
+    "Atomically births a physical serialized inventory item strictly from an approved QC item. Enforces QC approval prerequisite (INV-14), immutable birth certificate assignment, single-item uniqueness, SERIALIZED tracking type (INV-06), and initial state initialization.",
+  tags: ["Inventory"],
+  security: [{ BearerAuth: [] }],
+  request: {
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: birthInventoryItemSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Serialized inventory piece successfully birthed",
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description:
+        "Insufficient permissions (requires inventory:create) or store context violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    404: {
+      description: "Quality check item or storage compartment not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    409: {
+      description:
+        "Duplicate birth attempt: QC item has already been birthed into an inventory piece (INV-14)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description:
+        "QC item not approved, non-serialized SKU tracking type, invalid weight physics, or store mismatch",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/inventory/items",
+  summary: "List Serialized Inventory Items (FEAT-INV-01)",
+  description:
+    "Lists physical inventory items matching filter criteria and store scoping.",
+  tags: ["Inventory"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "storeId",
+      in: "query",
+      required: false,
+      description: "Store UUID filter",
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "productSkuId",
+      in: "query",
+      required: false,
+      description: "SKU UUID filter",
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "custodyState",
+      in: "query",
+      required: false,
+      description: "Custody state filter",
+      schema: {
+        type: "string",
+        enum: [
+          "INTAKE_STAGING",
+          "IN_VAULT",
+          "IN_TRANSIT",
+          "IN_DISPLAY",
+          "MISSING",
+          "RELEASED",
+        ],
+      },
+    },
+    {
+      name: "commercialState",
+      in: "query",
+      required: false,
+      description: "Commercial availability state filter",
+      schema: {
+        type: "string",
+        enum: [
+          "UNREADY",
+          "AVAILABLE_FOR_SALE",
+          "RESERVED",
+          "SOLD",
+          "ON_CONSIGNMENT",
+        ],
+      },
+    },
+    {
+      name: "serialNumber",
+      in: "query",
+      required: false,
+      description: "Partial or full serial number filter",
+      schema: { type: "string" },
+    },
+  ],
+  responses: {
+    200: {
+      description: "Inventory items retrieved successfully",
+    },
+    403: {
+      description:
+        "Insufficient permissions (requires inventory:view) or store context violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/inventory/items/{id}",
+  summary: "Get Inventory Item by ID (FEAT-INV-01)",
+  description:
+    "Retrieves full asset details and current multi-dimensional states for an inventory piece.",
+  tags: ["Inventory"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      description: "Inventory item UUID",
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: {
+      description: "Inventory item retrieved successfully",
+    },
+    403: {
+      description: "Insufficient permissions or store context violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    404: {
+      description: "Inventory item not found",
       content: {
         "application/problem+json": { schema: ProblemDocumentSchema },
       },

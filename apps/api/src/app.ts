@@ -10,6 +10,7 @@ import { createTaxonomyRouter } from "./modules/taxonomy/taxonomyRoutes.js";
 import { createProcurementRouter } from "./modules/procurement/procurementRoutes.js";
 import { createGovernanceRouter } from "./modules/governance/governanceRoutes.js";
 import { createQcRouter } from "./modules/qc/qcRoutes.js";
+import { createInventoryRouter } from "./modules/inventory/inventoryRoutes.js";
 import { createDocsRouter } from "./docs/docsRoutes.js";
 
 export function createApp(configureRoutes?: (app: Express) => void): Express {
@@ -65,7 +66,10 @@ export function createApp(configureRoutes?: (app: Express) => void): Express {
   // 12. Quality Control & Metrology Module (FEAT-QC-01)
   app.use("/api/v1/qc", createQcRouter());
 
-  // 13. Interactive OpenAPI / Swagger Documentation
+  // 13. Physical Inventory & Custody Ledger Module (FEAT-INV-01)
+  app.use("/api/v1/inventory", createInventoryRouter());
+
+  // 14. Interactive OpenAPI / Swagger Documentation
   app.use(createDocsRouter());
 
   // Custom route injection (useful for test harnesses and integration mocks)

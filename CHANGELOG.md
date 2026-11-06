@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Serialized Piece Birth & Lineage Integrity (`FEAT-INV-01` / `INV-14`, Entity 28)**:
+  - Created `inventory_items` table (Entity 28) establishing physical piece identity and immutable lineage linking back to approved QC inspections.
+  - Enforced `INV-14` birth certificate immutability via database trigger `trg_inventory_items_birth_lineage`, prohibiting mutations to `quality_check_item_id`.
+  - Enforced single-birth guarantee: 1:0..1 constraint on `quality_check_item_id UNIQUE` preventing duplicate item creation (`ERR_DUPLICATE_ITEM_BIRTH`, 409).
+  - Enforced organization-scoped unique serial number constraint `(organization_id, serial_number) UNIQUE`.
+  - Enforced `INV-06` tracking type gate: serialized piece birth is strictly restricted to SKUs with `tracking_type = 'SERIALIZED'`, rejecting batch SKUs (`QUANTITY_BATCH`) with 422 `ERR_INVALID_TRACKING_TYPE`.
+  - Enforced `INV-02` weight physics constraint `chk_inventory_items_weight_physics` ensuring `gross_weight_grams >= net_weight_grams > 0`.
+  - Implemented decoupled 4-orthogonal state dimensions initialized at birth:
+    - `quality_state = 'QC_APPROVED'`
+    - `approval_state = 'DRAFT'`
+    - `custody_state = 'IN_VAULT'`
+    - `commercial_state = 'UNREADY'`
+  - Enforced store-context scoping and multi-store isolation (`INV-11`): compartment store boundary verification (`ERR_COMPARTMENT_STORE_MISMATCH`, 422) and cross-store session isolation (`ERR_STORE_ACCESS_DENIED`, 403).
+  - Seeded permission `inventory:create` granted to `SYSTEM_ADMIN`, `STORE_MANAGER`, and `INVENTORY_CONTROLLER`.
+  - Implemented REST API endpoints:
+    - `POST /api/v1/inventory/items/birth` (`inventory:create`)
+    - `GET /api/v1/inventory/items/:id` (`inventory:view`)
+    - `GET /api/v1/inventory/items` (`inventory:view`)
+  - Integrated OpenAPI 3.1 documentation for inventory schemas and endpoints.
+  - Added comprehensive repository and API integration tests (25 test cases passing).
+
 ## [0.4.0] - 2026-11-07
 
 ### Added
