@@ -20,6 +20,7 @@ import {
   createMaterialSchema,
   createPuritySchema,
   createGemstoneSchema,
+  createProductSchema,
 } from "@jewelcore/shared";
 
 extendZodWithOpenApi(z);
@@ -326,6 +327,7 @@ const CreateSubcategorySchema = registry.register("CreateSubcategoryInput", crea
 const CreateMaterialSchema = registry.register("CreateMaterialInput", createMaterialSchema);
 const CreatePuritySchema = registry.register("CreatePurityInput", createPuritySchema);
 const CreateGemstoneSchema = registry.register("CreateGemstoneInput", createGemstoneSchema);
+const CreateProductSchema = registry.register("CreateProductInput", createProductSchema);
 
 registry.registerPath({
   method: "get",
@@ -435,6 +437,73 @@ registry.registerPath({
   ],
   responses: {
     200: { description: "List of gemstones" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/taxonomy/products",
+  tags: ["Taxonomy & Master Data"],
+  summary: "Create product master design style (Entity 15)",
+  security: [{ BearerAuth: [] }],
+  request: { body: { content: { "application/json": { schema: CreateProductSchema } } } },
+  responses: {
+    201: { description: "Product style created" },
+    400: { description: "Validation error", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+    403: { description: "Missing taxonomy:write permission", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+    409: { description: "Duplicate product code", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+    422: { description: "Referenced category, material, or purity not found", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/taxonomy/products",
+  tags: ["Taxonomy & Master Data"],
+  summary: "List product styles with optional categoryId and materialId filters",
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "categoryId",
+      in: "query",
+      required: false,
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "materialId",
+      in: "query",
+      required: false,
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "isActive",
+      in: "query",
+      required: false,
+      schema: { type: "boolean" },
+    },
+  ],
+  responses: {
+    200: { description: "List of product styles" },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/taxonomy/products/{id}",
+  tags: ["Taxonomy & Master Data"],
+  summary: "Retrieve product master design style by primary key ID",
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: { description: "Product style details" },
+    404: { description: "Product not found", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
   },
 });
 

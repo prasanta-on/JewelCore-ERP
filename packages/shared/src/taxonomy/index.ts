@@ -66,3 +66,4 @@ export type CreateSubcategoryInput = z.infer<typeof createSubcategorySchema>;
 
 export * from "./materialSchemas.js";
 export * from "./gemstoneSchemas.js";
+export * from "./productSchemas.js";

@@ -8,6 +8,7 @@ import { migration00005CreateStorageHierarchy } from "./00005_create_storage_hie
 import { migration00006CreateTaxonomyCategories } from "./00006_create_taxonomy_categories.js";
 import { migration00007CreateTaxonomyMaterialsAndPurities } from "./00007_create_taxonomy_materials_and_purities.js";
 import { migration00008CreateTaxonomyGemstones } from "./00008_create_taxonomy_gemstones.js";
+import { migration00009CreateTaxonomyProducts } from "./00009_create_taxonomy_products.js";
 
 export const allMigrations: MigrationDefinition[] = [
   migration00001CreateIamOrganizationsAndStores,
@@ -18,6 +19,7 @@ export const allMigrations: MigrationDefinition[] = [
   migration00006CreateTaxonomyCategories,
   migration00007CreateTaxonomyMaterialsAndPurities,
   migration00008CreateTaxonomyGemstones,
+  migration00009CreateTaxonomyProducts,
 ];
 
 /**
@@ -35,5 +37,6 @@ export * from "./00005_create_storage_hierarchy.js";
 export * from "./00006_create_taxonomy_categories.js";
 export * from "./00007_create_taxonomy_materials_and_purities.js";
 export * from "./00008_create_taxonomy_gemstones.js";
+export * from "./00009_create_taxonomy_products.js";
 
 

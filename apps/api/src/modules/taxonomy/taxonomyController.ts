@@ -5,6 +5,7 @@ import {
   createMaterialSchema,
   createPuritySchema,
   createGemstoneSchema,
+  createProductSchema,
   type GemstoneType,
   NotFoundError,
   BadRequestError,
@@ -27,6 +28,9 @@ import {
   createGemstone,
   getGemstoneById,
   listGemstones,
+  createProduct,
+  getProductById,
+  listProducts,
 } from "@jewelcore/database";
 
 export async function createCategoryHandler(
@@ -446,5 +450,95 @@ export async function getGemstoneHandler(
     next(err);
   }
 }
+
+// ==========================================
+// Product Master Styles Handlers (FEAT-TAX-04)
+// ==========================================
+
+export async function createProductHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const orgId = req.body.organizationId ?? req.user?.orgId;
+    if (!orgId) {
+      throw new BadRequestError("Organization context is required", "ERR_MISSING_ORG_CONTEXT");
+    }
+
+    const validated = createProductSchema.parse({
+      ...req.body,
+      organizationId: orgId,
+    });
+
+    const product = await createProduct(validated);
+    res.status(201).json({
+      data: product,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listProductsHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const orgId = req.user?.orgId;
+    if (!orgId) {
+      throw new BadRequestError("Organization context is required", "ERR_MISSING_ORG_CONTEXT");
+    }
+
+    const categoryId = req.query.categoryId as string | undefined;
+    const materialId = req.query.materialId as string | undefined;
+    const isActive = req.query.isActive !== undefined
+      ? req.query.isActive === "true"
+      : undefined;
+
+    const products = await listProducts({
+      organizationId: orgId,
+      categoryId,
+      materialId,
+      isActive,
+    });
+
+    res.status(200).json({
+      data: products,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getProductHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const rawId = req.params.id;
+    const id = Array.isArray(rawId) ? rawId[0] : rawId;
+    if (!id) {
+      throw new BadRequestError("Product ID is required", "ERR_INVALID_ID");
+    }
+
+    const product = await getProductById(id);
+    if (!product) {
+      throw new NotFoundError("Product", id);
+    }
+
+    res.status(200).json({
+      data: product,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 
 

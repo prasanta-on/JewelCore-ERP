@@ -17,6 +17,9 @@ import {
   createGemstoneHandler,
   listGemstonesHandler,
   getGemstoneHandler,
+  createProductHandler,
+  listProductsHandler,
+  getProductHandler,
 } from "./taxonomyController.js";
 
 export function createTaxonomyRouter(): Router {
@@ -53,6 +56,11 @@ export function createTaxonomyRouter(): Router {
   router.post("/gemstones", requirePermission("taxonomy:write"), createGemstoneHandler);
   router.get("/gemstones", listGemstonesHandler);
   router.get("/gemstones/:id", getGemstoneHandler);
+
+  // Products (Entity 15 - FEAT-TAX-04)
+  router.post("/products", requirePermission("taxonomy:write"), createProductHandler);
+  router.get("/products", listProductsHandler);
+  router.get("/products/:id", getProductHandler);
 
   return router;
 }
