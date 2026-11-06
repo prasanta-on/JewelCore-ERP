@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-07
+
 ### Added
 
 - **Multi-Dimensional State History & OCC Concurrency Engine (`FEAT-INV-04` / `INV-08`, Entity 31)**:
