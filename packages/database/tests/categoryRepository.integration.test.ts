@@ -38,7 +38,9 @@ describe("Category & Subcategory Repository Integration Tests (FEAT-TAX-01)", ()
   });
 
   afterAll(async () => {
-    await query("DELETE FROM categories WHERE code LIKE 'CAT_%';");
+    await query(
+      "DELETE FROM categories WHERE organization_id IN (SELECT id FROM organizations WHERE code LIKE 'CAT_TEST_%');",
+    );
     await query("DELETE FROM organizations WHERE code LIKE 'CAT_TEST_%';");
     await closePool();
   });

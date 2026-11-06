@@ -53,6 +53,7 @@ import {
   updateRfidTagStatusSchema,
   createRfidAssignmentSchema,
   retireRfidAssignmentSchema,
+  createStockApprovalSchema,
 } from "@jewelcore/shared";
 
 extendZodWithOpenApi(z);
@@ -3449,6 +3450,137 @@ registry.registerPath({
     },
     404: {
       description: "No active RFID tag assignment found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/governance/stock-approvals",
+  summary:
+    "Authorize managerial stock approval and commercial availability (FEAT-GOV-01, INV-01)",
+  tags: ["Governance"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: createStockApprovalSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description:
+        "Stock approval authorized and commercial availability released",
+    },
+    403: {
+      description:
+        "Forbidden - Insufficient permissions or cross-store access violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description:
+        "Unprocessable Entity - INV-01 prerequisite violation (QC, Custody, or RFID missing)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/governance/stock-approvals",
+  summary: "List managerial stock approvals with pagination and filters",
+  tags: ["Governance"],
+  security: [{ bearerAuth: [] }],
+  parameters: [
+    {
+      name: "inventoryItemId",
+      in: "query",
+      required: false,
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "approvalStatus",
+      in: "query",
+      required: false,
+      schema: { type: "string", enum: ["APPROVED", "REJECTED"] },
+    },
+    {
+      name: "limit",
+      in: "query",
+      required: false,
+      schema: { type: "integer", default: 50 },
+    },
+    {
+      name: "offset",
+      in: "query",
+      required: false,
+      schema: { type: "integer", default: 0 },
+    },
+  ],
+  responses: {
+    200: {
+      description: "Paginated list of stock approval records",
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/governance/stock-approvals/{id}",
+  summary: "Retrieve stock approval record by ID",
+  tags: ["Governance"],
+  security: [{ bearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: {
+      description: "Stock approval record",
+    },
+    404: {
+      description: "Stock approval record not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/governance/items/{itemId}/latest-approval",
+  summary: "Retrieve latest stock approval record for an inventory piece",
+  tags: ["Governance"],
+  security: [{ bearerAuth: [] }],
+  parameters: [
+    {
+      name: "itemId",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: {
+      description: "Latest stock approval record for item",
+    },
+    404: {
+      description: "No stock approval record found for item",
       content: {
         "application/problem+json": { schema: ProblemDocumentSchema },
       },

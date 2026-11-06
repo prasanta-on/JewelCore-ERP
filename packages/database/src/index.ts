@@ -34,3 +34,4 @@ export * from "./repositories/movementRepository.js";
 export * from "./repositories/stateHistoryRepository.js";
 export * from "./repositories/rfidRepository.js";
 export * from "./repositories/rfidAssignmentRepository.js";
+export * from "./repositories/stockApprovalRepository.js";

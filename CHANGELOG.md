@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Commercial Stock Approval & Availability Gate (`FEAT-GOV-01` / `INV-01`, Entity 39)**:
+  - Created `stock_approvals` table (Entity 39) managing managerial stock approval authorization and gating commercial availability for finished inventory pieces.
+  - Enforced `INV-01` Commercial Availability Quad-Prerequisite Gate: finished pieces can only transition to `commercial_state = 'AVAILABLE_FOR_SALE'` if:
+    1. `quality_state = 'QC_APPROVED'` (analytical metrology inspection approved).
+    2. `custody_state IN ('IN_VAULT', 'IN_DISPLAY')` (piece is physically secured in an authorized store vault or display case).
+    3. Active RFID tag transponder bound (`rfid_tag_assignments` active record exists).
+  - Enforced `INV-08` Root Aggregate Row Locking: approval mutations lock the parent piece row using `SELECT ... FOR UPDATE` on `inventory_items`.
+  - Enforced `INV-11` Multi-Store Boundary Isolation: cross-store approval attempts are rejected with 403 Forbidden (`ERR_STORE_ACCESS_DENIED`).
+  - Enforced `INV-09` Append-Only Immutability: database trigger `trg_stock_approvals_immutability` strictly prohibits `UPDATE` and `DELETE` queries against `stock_approvals`.
+  - Automatically records dual-dimension audit trail in `inventory_status_history` on approval:
+    - `APPROVAL` dimension: `DRAFT` / `PENDING_APPROVAL` -> `APPROVED` (or `REJECTED`).
+    - `COMMERCIAL` dimension: `UNREADY` -> `AVAILABLE_FOR_SALE` (or maintained in `UNREADY`).
+  - Seeded permissions: `stock:approve` (granted to `SYSTEM_ADMIN`, `STORE_MANAGER`) and `stock:view` (granted to `SYSTEM_ADMIN`, `STORE_MANAGER`, `INVENTORY_CONTROLLER`, `SALES_ASSOCIATE`).
+  - Implemented REST API endpoints mounted under `/api/v1/governance`:
+    - `POST /api/v1/governance/stock-approvals` (`stock:approve`) - Authorize managerial stock approval or rejection.
+    - `GET /api/v1/governance/stock-approvals/:id` (`stock:view`) - Retrieve stock approval record by ID.
+    - `GET /api/v1/governance/stock-approvals` (`stock:view`) - List stock approvals with item, status, store, and pagination filters.
+    - `GET /api/v1/governance/items/:itemId/latest-approval` (`stock:view`) - Retrieve latest stock approval for a piece.
+  - Added full OpenAPI 3.0 path documentation and schemas.
+  - Added comprehensive repository and API integration tests (17 test cases passing).
+
 - **Single-Active Tag Binding & Detachment Lifecycle (`FEAT-RFID-02` / `INV-03`, `INV-04`, `INV-07`, Entity 36)**:
   - Created `rfid_tag_assignments` table (Entity 36) managing the full auditable lifecycle binding of an RFID tag transponder to a physical serialized jewellery item.
   - Enforced `INV-03`: Single Active Tag per Serialized Item via partial unique index `uq_rfid_tag_assignments_active_item` on `(inventory_item_id) WHERE status = 'ACTIVE'`.
@@ -27,7 +48,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `GET /api/v1/rfid/items/:itemId/assignment` (`rfid:view`) - Retrieve current active assignment for an item.
   - Added full OpenAPI 3.0 path definitions and request/response schemas.
   - Added comprehensive repository and API integration tests (24 test cases passing).
-
 
 - **EPC Tag Master Registry & Lifecycle (`FEAT-RFID-01`, Entity 35)**:
   - Created `rfid_tags` table (Entity 35) providing global hardware transponder tracking with unique EPC constraint per tenant (`(organization_id, epc) UNIQUE`).

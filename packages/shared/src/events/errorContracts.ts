@@ -1,4 +1,4 @@
-import { DomainError } from "../index.js";
+import { DomainError } from "../errors.js";
 
 /**
  * Error indicating a transient failure that should be retried by the worker queue
