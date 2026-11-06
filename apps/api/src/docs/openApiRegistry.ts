@@ -40,6 +40,7 @@ import {
   updateQualityCheckSchema,
   createWeightMeasurementSchema,
   createQualityCheckItemSchema,
+  updateQualityCheckItemSchema,
   createItemGemstoneSchema,
 } from "@jewelcore/shared";
 
@@ -1987,6 +1988,98 @@ registry.registerPath({
     },
     422: {
       description: "Inspection session is sealed",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "put",
+  path: "/api/v1/qc/items/{id}",
+  summary: "Update QC Inspection Item & Decisions (FEAT-QC-04)",
+  description:
+    "Updates inspection observations (hallmarks, visual, damage) and executes formal piece-level approval or rejection. Enforces 3VL truth validation, pre-approval completeness gate, and laboratory scale reading verification.",
+  tags: ["Quality Control"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      description: "QC inspection item UUID",
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: updateQualityCheckItemSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "QC inspection item updated successfully",
+    },
+    400: {
+      description: "Invalid input or weight physics violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description: "Insufficient permissions (requires qc:inspect)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    404: {
+      description: "QC item not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description: "Pre-approval completeness gate failed or session sealed",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/qc/checks/{id}/items",
+  summary: "List Inspection Items for QC Session (FEAT-QC-04)",
+  description: "Lists all inspection pieces scoped to a quality check session.",
+  tags: ["Quality Control"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      description: "Quality check session UUID",
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: {
+      description: "Inspection items retrieved successfully",
+    },
+    403: {
+      description: "Insufficient permissions or store context violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    404: {
+      description: "QC session not found",
       content: {
         "application/problem+json": { schema: ProblemDocumentSchema },
       },

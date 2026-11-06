@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **QC Item 3VL Inspection & Completeness Gate (`FEAT-QC-04`)**:
+  - Implemented piece-level 3VL (Three-Valued Logic) quality inspection workflows for `quality_check_items` (Entity 24):
+    - Rigorous 3VL boolean predicates (`hallmark_verified IS TRUE`, `visual_inspection_passed IS TRUE`) preventing unperformed inspections (`NULL` evaluating to `UNKNOWN`) from passing approval.
+    - Tier B row-local physical invariants (`net_weight_grams <= gross_weight_grams`, positive weights `INV-02`, damage notes mandatory if damage detected).
+    - Tier C transactional balance verification: approval strictly requires at least one certified `GROSS_WEIGHT` measurement in `weight_measurements` (`ERR_MISSING_SCALE_OBSERVATION`, 422).
+    - Tier D operational supervisor damage waiver: approval of items with `damage_detected = true` requires explicit supervisor waiver authorization (`ERR_DAMAGE_WAIVER_REQUIRED`, 422).
+    - Sealed session immutability gate: mutating items in `SEALED` inspection sessions rejected with 422 (`ERR_SESSION_SEALED`).
+  - Implemented endpoints `PUT /api/v1/qc/items/:id`, `PATCH /api/v1/qc/items/:id` (`qc:inspect` permission) and `GET /api/v1/qc/checks/:id/items` (`qc:view` permission) with RFC 7807 error format and OpenAPI 3.1 documentation.
 - **Mounted Gemstone Carat Parcel Grading (`FEAT-QC-03`)**:
   - Implemented `item_gemstones` (Entity 26) mounted stone and parcel grading engine:
     - Supported stone types: `PRIMARY_SOLITAIRE`, `ACCENT_MELEE`, and `PARCEL`.

@@ -4,6 +4,7 @@ import {
   updateQualityCheckSchema,
   createWeightMeasurementSchema,
   createQualityCheckItemSchema,
+  updateQualityCheckItemSchema,
   createItemGemstoneSchema,
   QualityCheckStatus,
   SEALED_QC_STATUSES,
@@ -23,6 +24,8 @@ import {
   listWeightMeasurements,
   createQualityCheckItem,
   getQualityCheckItemWithSession,
+  updateQualityCheckItem,
+  listQualityCheckItemsBySessionId,
   addItemGemstone,
   listItemGemstonesByQcItemId,
 } from "@jewelcore/database";
@@ -438,6 +441,115 @@ export async function getQualityCheckItemHandler(
     }
 
     res.status(200).json(sessionContext.item);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Updates an inspection piece with hallmark, visual, damage assessment, and approval decisions (FEAT-QC-04).
+ *
+ * Enforces:
+ * - qc:inspect permission
+ * - 3VL boolean integrity & pre-approval completeness gate (Tier B)
+ * - Laboratory scale observation prerequisite (Tier C)
+ * - Supervisor damage waiver authorization (Tier D)
+ * - Sealed session immutability
+ */
+export async function updateQualityCheckItemHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) {
+      throw new BadRequestError("Quality check item ID parameter is required");
+    }
+
+    const sessionContext = await getQualityCheckItemWithSession(id);
+    if (!sessionContext) {
+      throw new NotFoundError(
+        `Quality check item with ID '${id}' not found`,
+        "ERR_QC_ITEM_NOT_FOUND",
+      );
+    }
+
+    // Invariant INV-11: store context check
+    const activeStoreId =
+      req.storeContext?.storeId ??
+      (typeof req.headers["x-store-id"] === "string"
+        ? req.headers["x-store-id"]
+        : undefined);
+
+    if (activeStoreId && activeStoreId !== sessionContext.storeId) {
+      throw new ForbiddenError(
+        `Cross-store access denied: session belongs to store '${sessionContext.storeId}', but request is scoped to '${activeStoreId}'`,
+        "ERR_STORE_ACCESS_DENIED",
+      );
+    }
+
+    // Sealed Session Gate
+    if (SEALED_QC_STATUSES.includes(sessionContext.sessionStatus)) {
+      throw new UnprocessableEntityError(
+        `Inspection session is ${sessionContext.sessionStatus} and sealed; modifications are strictly prohibited`,
+        "ERR_SESSION_SEALED",
+      );
+    }
+
+    const input = updateQualityCheckItemSchema.parse(req.body);
+
+    const updatedItem = await updateQualityCheckItem(id, input, {
+      userId: req.user!.userId,
+      role:
+        typeof (req.user as any)?.role === "string"
+          ? (req.user as any).role
+          : undefined,
+    });
+
+    res.status(200).json(updatedItem);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Lists all inspection pieces scoped to a quality check session.
+ */
+export async function listQualityCheckItemsHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const qcId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+    if (!qcId) {
+      throw new BadRequestError("Quality check ID parameter is required");
+    }
+
+    const session = await getQualityCheckById(qcId);
+    if (!session) {
+      throw new NotFoundError(
+        `Quality check session with ID '${qcId}' not found`,
+        "ERR_QC_NOT_FOUND",
+      );
+    }
+
+    // Invariant INV-11: store context check
+    if (
+      req.storeContext?.storeId &&
+      req.storeContext.storeId !== session.storeId
+    ) {
+      throw new ForbiddenError(
+        "Access to the requested store context is denied",
+        "ERR_STORE_ACCESS_DENIED",
+      );
+    }
+
+    const items = await listQualityCheckItemsBySessionId(qcId);
+    res.status(200).json(items);
   } catch (err) {
     next(err);
   }

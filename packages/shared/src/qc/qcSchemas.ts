@@ -293,6 +293,55 @@ export type CreateQualityCheckItemInput = z.infer<
   typeof createQualityCheckItemSchema
 >;
 
+export const updateQualityCheckItemSchema = z.object({
+  status: z
+    .enum([
+      QualityCheckItemStatus.PENDING,
+      QualityCheckItemStatus.APPROVED,
+      QualityCheckItemStatus.REJECTED,
+    ])
+    .optional(),
+  verifiedMaterialId: z
+    .string()
+    .uuid("verifiedMaterialId must be a valid UUID")
+    .optional()
+    .nullable(),
+  verifiedPurityId: z
+    .string()
+    .uuid("verifiedPurityId must be a valid UUID")
+    .optional()
+    .nullable(),
+  grossWeightGrams: z
+    .number()
+    .positive("grossWeightGrams must be strictly positive (> 0)")
+    .optional()
+    .nullable(),
+  tareWeightGrams: z
+    .number()
+    .nonnegative("tareWeightGrams cannot be negative")
+    .optional(),
+  netWeightGrams: z
+    .number()
+    .positive("netWeightGrams must be strictly positive (> 0)")
+    .optional()
+    .nullable(),
+  stoneWeightCarats: z
+    .number()
+    .nonnegative("stoneWeightCarats cannot be negative")
+    .optional(),
+  hallmarkVerified: z.boolean().optional().nullable(),
+  visualInspectionPassed: z.boolean().optional().nullable(),
+  damageDetected: z.boolean().optional().nullable(),
+  damageNotes: z.string().optional().nullable(),
+  rejectionReason: z.string().optional().nullable(),
+  isSupervisorWaiver: z.boolean().optional(),
+  waiverNotes: z.string().optional().nullable(),
+});
+
+export type UpdateQualityCheckItemInput = z.infer<
+  typeof updateQualityCheckItemSchema
+>;
+
 export interface QualityCheckItemRecord {
   id: string;
   qualityCheckId: string;

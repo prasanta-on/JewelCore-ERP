@@ -769,6 +769,24 @@ export interface CreateItemGemstoneParams {
   settingVerified?: boolean;
 }
 
+export interface UpdateQualityCheckItemParams {
+  status?: QualityCheckItemStatus;
+  verifiedMaterialId?: string | null;
+  verifiedPurityId?: string | null;
+  grossWeightGrams?: number | null;
+  tareWeightGrams?: number;
+  netWeightGrams?: number | null;
+  stoneWeightCarats?: number;
+  hallmarkVerified?: boolean | null;
+  visualInspectionPassed?: boolean | null;
+  damageDetected?: boolean | null;
+  damageNotes?: string | null;
+  rejectionReason?: string | null;
+  isSupervisorWaiver?: boolean;
+  waiverNotes?: string | null;
+  decisionByUserId?: string | null;
+}
+
 /**
  * Creates a piece-level technical inspection record (Entity 24).
  */
@@ -1152,4 +1170,304 @@ export async function getItemGemstoneById(
     return null;
   }
   return mapRowToItemGemstone(row);
+}
+
+/**
+ * Updates a piece-level quality inspection item (Entity 24 - FEAT-QC-04).
+ *
+ * Enforces:
+ * - Sealed Session Immutability Gate (ERR_SESSION_SEALED, 422)
+ * - 3VL Inspection Integrity (INV-18 Tier B/C/D)
+ * - Pre-approval Completeness Gate (all checks must be non-null and passing)
+ * - Tier C Laboratory observation presence: at least one GROSS_WEIGHT measurement in weight_measurements
+ * - Tier D Supervisor Damage Waiver: if damageDetected is true, approval requires supervisor waiver
+ */
+export async function updateQualityCheckItem(
+  id: string,
+  params: UpdateQualityCheckItemParams,
+  userContext?: { userId: string; role?: string },
+  clientOverride?: Queryable,
+): Promise<QualityCheckItemRecord> {
+  const executeUpdate = async (client: Queryable) => {
+    // 1. Fetch current item joined with parent inspection session
+    const itemRes = await client.query<
+      QualityCheckItemRow & {
+        session_status: QualityCheckStatusType;
+        store_id: string;
+      }
+    >(
+      `
+      SELECT
+        qci.*,
+        qc.status AS session_status,
+        qc.store_id
+      FROM quality_check_items qci
+      JOIN quality_checks qc ON qci.quality_check_id = qc.id
+      WHERE qci.id = $1
+      FOR UPDATE OF qci
+      `,
+      [id],
+    );
+
+    const current = itemRes.rows[0];
+    if (!current) {
+      throw new NotFoundError(
+        `Quality check item with ID '${id}' not found`,
+        "ERR_QC_ITEM_NOT_FOUND",
+      );
+    }
+
+    // 2. Sealed Session Immutability Gate
+    if (SEALED_QC_STATUSES.includes(current.session_status)) {
+      throw new UnprocessableEntityError(
+        `Inspection session is ${current.session_status} and sealed; modifications are strictly prohibited`,
+        "ERR_SESSION_SEALED",
+      );
+    }
+
+    // Merge attributes
+    const status = params.status ?? current.status;
+    const verifiedMaterialId =
+      params.verifiedMaterialId !== undefined
+        ? params.verifiedMaterialId
+        : current.verified_material_id;
+    const verifiedPurityId =
+      params.verifiedPurityId !== undefined
+        ? params.verifiedPurityId
+        : current.verified_purity_id;
+    const grossWeightGrams =
+      params.grossWeightGrams !== undefined
+        ? params.grossWeightGrams
+        : current.gross_weight_grams !== null
+          ? Number(current.gross_weight_grams)
+          : null;
+    const tareWeightGrams =
+      params.tareWeightGrams !== undefined
+        ? params.tareWeightGrams
+        : Number(current.tare_weight_grams ?? 0);
+    const stoneWeightCarats =
+      params.stoneWeightCarats !== undefined
+        ? params.stoneWeightCarats
+        : Number(current.stone_weight_carats ?? 0);
+
+    let netWeightGrams =
+      params.netWeightGrams !== undefined
+        ? params.netWeightGrams
+        : current.net_weight_grams !== null
+          ? Number(current.net_weight_grams)
+          : null;
+
+    if (
+      params.netWeightGrams === undefined &&
+      grossWeightGrams !== null &&
+      (params.grossWeightGrams !== undefined ||
+        params.tareWeightGrams !== undefined)
+    ) {
+      netWeightGrams = calculateNetWeightGrams(
+        grossWeightGrams,
+        tareWeightGrams,
+        stoneWeightCarats,
+      );
+    }
+
+    const hallmarkVerified =
+      params.hallmarkVerified !== undefined
+        ? params.hallmarkVerified
+        : current.hallmark_verified;
+    const visualInspectionPassed =
+      params.visualInspectionPassed !== undefined
+        ? params.visualInspectionPassed
+        : current.visual_inspection_passed;
+    const damageDetected =
+      params.damageDetected !== undefined
+        ? params.damageDetected
+        : current.damage_detected;
+    const damageNotes =
+      params.damageNotes !== undefined
+        ? params.damageNotes
+        : current.damage_notes;
+    const rejectionReason =
+      params.rejectionReason !== undefined
+        ? params.rejectionReason
+        : current.rejection_reason;
+
+    let decisionByUserId = current.decision_by_user_id;
+    let decisionAt = current.decision_at;
+
+    // 3. Pre-Approval Completeness Gate (Tier B/C/D)
+    if (
+      status === QualityCheckItemStatus.APPROVED &&
+      current.status !== QualityCheckItemStatus.APPROVED
+    ) {
+      // Tier B Application Verification:
+      if (!verifiedMaterialId || !verifiedPurityId) {
+        throw new UnprocessableEntityError(
+          "Approval requires verified material alloy and purity standards",
+          "ERR_APPROVAL_PREREQUISITE_FAILED",
+        );
+      }
+
+      if (
+        grossWeightGrams === null ||
+        grossWeightGrams <= 0 ||
+        netWeightGrams === null ||
+        netWeightGrams <= 0
+      ) {
+        throw new UnprocessableEntityError(
+          "Approval requires strictly positive gross and net weights satisfying physics",
+          "ERR_APPROVAL_PREREQUISITE_FAILED",
+        );
+      }
+
+      if (netWeightGrams > grossWeightGrams) {
+        throw new UnprocessableEntityError(
+          "Net precious metal weight cannot exceed gross weight",
+          "ERR_APPROVAL_PREREQUISITE_FAILED",
+        );
+      }
+
+      if (hallmarkVerified !== true) {
+        throw new UnprocessableEntityError(
+          "Approval requires hallmark inspection physically verified (IS TRUE)",
+          "ERR_APPROVAL_PREREQUISITE_FAILED",
+        );
+      }
+
+      if (visualInspectionPassed !== true) {
+        throw new UnprocessableEntityError(
+          "Approval requires visual inspection passed (IS TRUE)",
+          "ERR_APPROVAL_PREREQUISITE_FAILED",
+        );
+      }
+
+      if (damageDetected === null || damageDetected === undefined) {
+        throw new UnprocessableEntityError(
+          "Approval requires damage inspection assessment (cannot be unperformed NULL)",
+          "ERR_APPROVAL_PREREQUISITE_FAILED",
+        );
+      }
+
+      if (damageDetected === true) {
+        if (!damageNotes) {
+          throw new UnprocessableEntityError(
+            "Damage description notes are mandatory when structural damage is detected",
+            "ERR_APPROVAL_PREREQUISITE_FAILED",
+          );
+        }
+        if (!params.isSupervisorWaiver) {
+          throw new UnprocessableEntityError(
+            "Approval with detected damage requires an authorized supervisor waiver (Tier D)",
+            "ERR_DAMAGE_WAIVER_REQUIRED",
+          );
+        }
+      }
+
+      // Tier C Verification: At least one verified GROSS_WEIGHT scale measurement in weight_measurements
+      const scaleCheck = await client.query<{ id: string }>(
+        `
+        SELECT id FROM weight_measurements
+        WHERE quality_check_item_id = $1 AND measurement_type = 'GROSS_WEIGHT'
+        LIMIT 1
+        `,
+        [id],
+      );
+
+      if (scaleCheck.rows.length === 0) {
+        throw new UnprocessableEntityError(
+          "Approval requires at least one verified GROSS_WEIGHT scale measurement in weight_measurements (Tier C)",
+          "ERR_MISSING_SCALE_OBSERVATION",
+        );
+      }
+
+      decisionByUserId =
+        params.decisionByUserId ??
+        userContext?.userId ??
+        current.decision_by_user_id;
+      decisionAt = new Date();
+    } else if (
+      status === QualityCheckItemStatus.REJECTED &&
+      current.status !== QualityCheckItemStatus.REJECTED
+    ) {
+      decisionByUserId =
+        params.decisionByUserId ??
+        userContext?.userId ??
+        current.decision_by_user_id;
+      decisionAt = new Date();
+    }
+
+    const updateRes = await client.query<QualityCheckItemRow>(
+      `
+      UPDATE quality_check_items
+      SET
+        status = $2,
+        verified_material_id = $3,
+        verified_purity_id = $4,
+        gross_weight_grams = $5,
+        tare_weight_grams = $6,
+        net_weight_grams = $7,
+        stone_weight_carats = $8,
+        hallmark_verified = $9,
+        visual_inspection_passed = $10,
+        damage_detected = $11,
+        damage_notes = $12,
+        rejection_reason = $13,
+        decision_by_user_id = $14,
+        decision_at = $15,
+        updated_at = clock_timestamp()
+      WHERE id = $1
+      RETURNING *
+      `,
+      [
+        id,
+        status,
+        verifiedMaterialId,
+        verifiedPurityId,
+        grossWeightGrams,
+        tareWeightGrams,
+        netWeightGrams,
+        stoneWeightCarats,
+        hallmarkVerified,
+        visualInspectionPassed,
+        damageDetected,
+        damageNotes,
+        rejectionReason,
+        decisionByUserId,
+        decisionAt,
+      ],
+    );
+
+    const updatedRow = updateRes.rows[0];
+    if (!updatedRow) {
+      throw new Error("Failed to update quality check item");
+    }
+
+    return mapRowToQualityCheckItem(updatedRow);
+  };
+
+  if (clientOverride) {
+    return executeUpdate(clientOverride);
+  }
+
+  return withTransaction((tx) => executeUpdate(tx.rawClient));
+}
+
+/**
+ * Lists all inspection pieces scoped to a quality check session.
+ */
+export async function listQualityCheckItemsBySessionId(
+  qcSessionId: string,
+  clientOverride?: Queryable,
+): Promise<QualityCheckItemRecord[]> {
+  const executor = clientOverride ?? getPool();
+  const res = await executor.query<QualityCheckItemRow>(
+    `
+    SELECT *
+    FROM quality_check_items
+    WHERE quality_check_id = $1
+    ORDER BY item_sequence_number ASC
+    `,
+    [qcSessionId],
+  );
+
+  return res.rows.map(mapRowToQualityCheckItem);
 }
