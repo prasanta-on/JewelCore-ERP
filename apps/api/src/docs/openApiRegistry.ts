@@ -33,6 +33,7 @@ import {
   updateShipmentSchema,
   createShipmentItemInputSchema,
   updateShipmentItemSchema,
+  createStaffAssignmentSchema,
 } from "@jewelcore/shared";
 
 extendZodWithOpenApi(z);
@@ -1528,6 +1529,154 @@ registry.registerPath({
     },
     404: {
       description: "Shipment item not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description: "Parent GRN is closed and locked",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+// -------------------------------------------------------------
+// 12. Receiving Staff Assignments Endpoints (FEAT-PROC-04)
+// -------------------------------------------------------------
+const CreateStaffAssignmentSchema = registry.register(
+  "CreateStaffAssignmentInput",
+  createStaffAssignmentSchema,
+);
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/procurement/assignments",
+  tags: ["Procurement & Inbound Intake"],
+  summary:
+    "Assign operational staff member to intake/inspection duty (Entity 22)",
+  security: [{ BearerAuth: [] }],
+  request: {
+    body: {
+      content: { "application/json": { schema: CreateStaffAssignmentSchema } },
+    },
+  },
+  responses: {
+    201: { description: "Staff assignment created successfully" },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description: "Missing procurement:write permission",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    409: {
+      description: "Staff member already assigned to this role and scope",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description: "Parent GRN closed or shipment mismatch (INV-19)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/procurement/assignments",
+  tags: ["Procurement & Inbound Intake"],
+  summary: "List staff assignments filtered by GRN, shipment, user, or role",
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "goodsReceiptNoteId",
+      in: "query",
+      required: false,
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "shipmentId",
+      in: "query",
+      required: false,
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "assignedUserId",
+      in: "query",
+      required: false,
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "assignedRole",
+      in: "query",
+      required: false,
+      schema: { type: "string", enum: ["RECEIVER", "INSPECTOR", "APPROVER"] },
+    },
+  ],
+  responses: {
+    200: { description: "List of staff assignments" },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/procurement/assignments/{id}",
+  tags: ["Procurement & Inbound Intake"],
+  summary: "Retrieve staff assignment by ID",
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: { description: "Staff assignment details" },
+    404: {
+      description: "Staff assignment not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/api/v1/procurement/assignments/{id}",
+  tags: ["Procurement & Inbound Intake"],
+  summary: "Remove staff assignment (enforces immutable lock on closed GRN)",
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: { description: "Staff assignment deleted successfully" },
+    403: {
+      description: "Missing procurement:write permission",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    404: {
+      description: "Staff assignment not found",
       content: {
         "application/problem+json": { schema: ProblemDocumentSchema },
       },

@@ -20,6 +20,10 @@ import {
   updateShipmentHandler,
   addShipmentItemHandler,
   updateShipmentItemHandler,
+  createStaffAssignmentHandler,
+  listStaffAssignmentsHandler,
+  getStaffAssignmentHandler,
+  deleteStaffAssignmentHandler,
 } from "./procurementController.js";
 
 export function createProcurementRouter(): Router {
@@ -86,6 +90,20 @@ export function createProcurementRouter(): Router {
     "/shipments/:id/items/:itemId",
     requirePermission("procurement:write"),
     updateShipmentItemHandler,
+  );
+
+  // Receiving Staff Assignments (Entity 22 - FEAT-PROC-04)
+  router.post(
+    "/assignments",
+    requirePermission("procurement:write"),
+    createStaffAssignmentHandler,
+  );
+  router.get("/assignments", listStaffAssignmentsHandler);
+  router.get("/assignments/:id", getStaffAssignmentHandler);
+  router.delete(
+    "/assignments/:id",
+    requirePermission("procurement:write"),
+    deleteStaffAssignmentHandler,
   );
 
   return router;

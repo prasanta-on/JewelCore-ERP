@@ -9,8 +9,10 @@ import {
   updateShipmentSchema,
   createShipmentItemInputSchema,
   updateShipmentItemSchema,
+  createStaffAssignmentSchema,
   type GrnStatus,
   type ShipmentStatus,
+  type StaffAssignmentRole,
   NotFoundError,
   BadRequestError,
 } from "@jewelcore/shared";
@@ -30,6 +32,10 @@ import {
   updateShipment,
   addShipmentItem,
   updateShipmentItem,
+  createStaffAssignment,
+  getStaffAssignmentById,
+  listStaffAssignments,
+  deleteStaffAssignment,
 } from "@jewelcore/database";
 
 export async function createSupplierHandler(
@@ -465,6 +471,112 @@ export async function updateShipmentItemHandler(
 
     res.status(200).json({
       data: updated,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ==========================================
+// Receiving Staff Assignments Handlers (FEAT-PROC-04)
+// ==========================================
+
+export async function createStaffAssignmentHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const validated = createStaffAssignmentSchema.parse(req.body);
+    const assignment = await createStaffAssignment(validated);
+
+    res.status(201).json({
+      data: assignment,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listStaffAssignmentsHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const goodsReceiptNoteId = req.query.goodsReceiptNoteId as
+      string | undefined;
+    const shipmentId = req.query.shipmentId as string | undefined;
+    const assignedUserId = req.query.assignedUserId as string | undefined;
+    const assignedRole = req.query.assignedRole as
+      StaffAssignmentRole | undefined;
+
+    const assignments = await listStaffAssignments({
+      goodsReceiptNoteId,
+      shipmentId,
+      assignedUserId,
+      assignedRole,
+    });
+
+    res.status(200).json({
+      data: assignments,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getStaffAssignmentHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const rawId = req.params.id;
+    const id = Array.isArray(rawId) ? rawId[0] : rawId;
+    if (!id) {
+      throw new BadRequestError(
+        "Staff Assignment ID is required",
+        "ERR_INVALID_ID",
+      );
+    }
+
+    const assignment = await getStaffAssignmentById(id);
+    if (!assignment) {
+      throw new NotFoundError("Staff Assignment", id);
+    }
+
+    res.status(200).json({
+      data: assignment,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function deleteStaffAssignmentHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const rawId = req.params.id;
+    const id = Array.isArray(rawId) ? rawId[0] : rawId;
+    if (!id) {
+      throw new BadRequestError(
+        "Staff Assignment ID is required",
+        "ERR_INVALID_ID",
+      );
+    }
+
+    await deleteStaffAssignment(id);
+
+    res.status(200).json({
+      message: "Staff assignment deleted successfully",
       timestamp: new Date().toISOString(),
     });
   } catch (err) {

@@ -13,6 +13,7 @@ import { migration00010CreateTaxonomySkusAndSpecs } from "./00010_create_taxonom
 import { migration00011CreateProcurementSuppliers } from "./00011_create_procurement_suppliers.js";
 import { migration00012CreateProcurementGrns } from "./00012_create_procurement_grns.js";
 import { migration00013CreateProcurementShipments } from "./00013_create_procurement_shipments.js";
+import { migration00014CreateProcurementStaffAssignments } from "./00014_create_procurement_staff_assignments.js";
 
 export const allMigrations: MigrationDefinition[] = [
   migration00001CreateIamOrganizationsAndStores,
@@ -28,6 +29,7 @@ export const allMigrations: MigrationDefinition[] = [
   migration00011CreateProcurementSuppliers,
   migration00012CreateProcurementGrns,
   migration00013CreateProcurementShipments,
+  migration00014CreateProcurementStaffAssignments,
 ];
 
 /**
@@ -50,3 +52,4 @@ export * from "./00010_create_taxonomy_skus_and_specs.js";
 export * from "./00011_create_procurement_suppliers.js";
 export * from "./00012_create_procurement_grns.js";
 export * from "./00013_create_procurement_shipments.js";
+export * from "./00014_create_procurement_staff_assignments.js";
