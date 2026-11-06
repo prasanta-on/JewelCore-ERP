@@ -4,6 +4,8 @@ import {
   createSubcategorySchema,
   createMaterialSchema,
   createPuritySchema,
+  createGemstoneSchema,
+  type GemstoneType,
   NotFoundError,
   BadRequestError,
 } from "@jewelcore/shared";
@@ -22,6 +24,9 @@ import {
   getPurityById,
   listPurities,
   getMaterialWithPurities,
+  createGemstone,
+  getGemstoneById,
+  listGemstones,
 } from "@jewelcore/database";
 
 export async function createCategoryHandler(
@@ -354,4 +359,92 @@ export async function getPurityHandler(
     next(err);
   }
 }
+
+// ==========================================
+// Gemstones Handlers (FEAT-TAX-03)
+// ==========================================
+
+export async function createGemstoneHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const orgId = req.body.organizationId ?? req.user?.orgId;
+    if (!orgId) {
+      throw new BadRequestError("Organization context is required", "ERR_MISSING_ORG_CONTEXT");
+    }
+
+    const validated = createGemstoneSchema.parse({
+      ...req.body,
+      organizationId: orgId,
+    });
+
+    const gemstone = await createGemstone(validated);
+    res.status(201).json({
+      data: gemstone,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listGemstonesHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const orgId = req.user?.orgId;
+    if (!orgId) {
+      throw new BadRequestError("Organization context is required", "ERR_MISSING_ORG_CONTEXT");
+    }
+
+    const gemstoneType = req.query.gemstoneType as GemstoneType | undefined;
+    const isActive = req.query.isActive !== undefined
+      ? req.query.isActive === "true"
+      : undefined;
+
+    const gemstones = await listGemstones({
+      organizationId: orgId,
+      gemstoneType,
+      isActive,
+    });
+
+    res.status(200).json({
+      data: gemstones,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getGemstoneHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const rawId = req.params.id;
+    const id = Array.isArray(rawId) ? rawId[0] : rawId;
+    if (!id) {
+      throw new BadRequestError("Gemstone ID is required", "ERR_INVALID_ID");
+    }
+
+    const gemstone = await getGemstoneById(id);
+    if (!gemstone) {
+      throw new NotFoundError("Gemstone", id);
+    }
+
+    res.status(200).json({
+      data: gemstone,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 

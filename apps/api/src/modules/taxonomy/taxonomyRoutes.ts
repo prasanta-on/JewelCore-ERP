@@ -14,6 +14,9 @@ import {
   createPurityHandler,
   listPuritiesHandler,
   getPurityHandler,
+  createGemstoneHandler,
+  listGemstonesHandler,
+  getGemstoneHandler,
 } from "./taxonomyController.js";
 
 export function createTaxonomyRouter(): Router {
@@ -45,6 +48,11 @@ export function createTaxonomyRouter(): Router {
   router.post("/purities", requirePermission("taxonomy:write"), createPurityHandler);
   router.get("/purities", listPuritiesHandler);
   router.get("/purities/:id", getPurityHandler);
+
+  // Gemstones (Entity 14 - FEAT-TAX-03)
+  router.post("/gemstones", requirePermission("taxonomy:write"), createGemstoneHandler);
+  router.get("/gemstones", listGemstonesHandler);
+  router.get("/gemstones/:id", getGemstoneHandler);
 
   return router;
 }
