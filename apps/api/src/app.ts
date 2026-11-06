@@ -7,6 +7,7 @@ import { createAuthRouter } from "./modules/auth/authRoutes.js";
 import { createIamRouter } from "./modules/iam/iamRoutes.js";
 import { createStorageRouter } from "./modules/storage/storageRoutes.js";
 import { createTaxonomyRouter } from "./modules/taxonomy/taxonomyRoutes.js";
+import { createProcurementRouter } from "./modules/procurement/procurementRoutes.js";
 import { createDocsRouter } from "./docs/docsRoutes.js";
 
 export function createApp(configureRoutes?: (app: Express) => void): Express {
@@ -53,7 +54,10 @@ export function createApp(configureRoutes?: (app: Express) => void): Express {
   // 9. Master Data Taxonomy Module (FEAT-TAX-01)
   app.use("/api/v1/taxonomy", createTaxonomyRouter());
 
-  // 10. Interactive OpenAPI / Swagger Documentation
+  // 10. Inbound Procurement & Vendor Management Module (FEAT-PROC-01)
+  app.use("/api/v1/procurement", createProcurementRouter());
+
+  // 11. Interactive OpenAPI / Swagger Documentation
   app.use(createDocsRouter());
 
   // Custom route injection (useful for test harnesses and integration mocks)

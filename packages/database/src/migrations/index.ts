@@ -10,6 +10,7 @@ import { migration00007CreateTaxonomyMaterialsAndPurities } from "./00007_create
 import { migration00008CreateTaxonomyGemstones } from "./00008_create_taxonomy_gemstones.js";
 import { migration00009CreateTaxonomyProducts } from "./00009_create_taxonomy_products.js";
 import { migration00010CreateTaxonomySkusAndSpecs } from "./00010_create_taxonomy_skus_and_specs.js";
+import { migration00011CreateProcurementSuppliers } from "./00011_create_procurement_suppliers.js";
 
 export const allMigrations: MigrationDefinition[] = [
   migration00001CreateIamOrganizationsAndStores,
@@ -22,6 +23,7 @@ export const allMigrations: MigrationDefinition[] = [
   migration00008CreateTaxonomyGemstones,
   migration00009CreateTaxonomyProducts,
   migration00010CreateTaxonomySkusAndSpecs,
+  migration00011CreateProcurementSuppliers,
 ];
 
 /**
@@ -41,5 +43,6 @@ export * from "./00007_create_taxonomy_materials_and_purities.js";
 export * from "./00008_create_taxonomy_gemstones.js";
 export * from "./00009_create_taxonomy_products.js";
 export * from "./00010_create_taxonomy_skus_and_specs.js";
+export * from "./00011_create_procurement_suppliers.js";
 
 

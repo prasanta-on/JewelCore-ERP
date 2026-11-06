@@ -151,4 +151,5 @@ export * from "./events/idempotencyContracts.js";
 export * from "./iam/index.js";
 export * from "./storage/index.js";
 export * from "./taxonomy/index.js";
+export * from "./procurement/index.js";
 

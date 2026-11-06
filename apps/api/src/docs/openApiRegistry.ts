@@ -24,6 +24,8 @@ import {
   createProductSkuSchema,
   updateProductSkuSchema,
   createProductGemstoneSpecSchema,
+  createSupplierSchema,
+  updateSupplierSchema,
 } from "@jewelcore/shared";
 
 extendZodWithOpenApi(z);
@@ -631,6 +633,89 @@ registry.registerPath({
     403: { description: "Missing taxonomy:write permission", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
     409: { description: "Duplicate gemstone spec shape", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
     422: { description: "SKU or gemstone not found", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+  },
+});
+
+// -------------------------------------------------------------
+// 9. Inbound Procurement & Supplier Management (FEAT-PROC-01)
+// -------------------------------------------------------------
+const CreateSupplierSchema = registry.register("CreateSupplierInput", createSupplierSchema);
+const UpdateSupplierSchema = registry.register("UpdateSupplierInput", updateSupplierSchema);
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/procurement/suppliers",
+  tags: ["Procurement & Inbound Intake"],
+  summary: "Register new vendor or artisan karigar profile (Entity 18)",
+  security: [{ BearerAuth: [] }],
+  request: { body: { content: { "application/json": { schema: CreateSupplierSchema } } } },
+  responses: {
+    201: { description: "Supplier registered successfully" },
+    400: { description: "Validation error", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+    403: { description: "Missing procurement:write permission", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+    409: { description: "Duplicate supplier code", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/procurement/suppliers",
+  tags: ["Procurement & Inbound Intake"],
+  summary: "List registered suppliers with optional active filter",
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "isActive",
+      in: "query",
+      required: false,
+      schema: { type: "boolean" },
+    },
+  ],
+  responses: {
+    200: { description: "List of suppliers" },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/procurement/suppliers/{id}",
+  tags: ["Procurement & Inbound Intake"],
+  summary: "Retrieve supplier profile by primary key ID",
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: { description: "Supplier profile details" },
+    404: { description: "Supplier not found", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/v1/procurement/suppliers/{id}",
+  tags: ["Procurement & Inbound Intake"],
+  summary: "Update supplier vendor details and commercial terms",
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  request: { body: { content: { "application/json": { schema: UpdateSupplierSchema } } } },
+  responses: {
+    200: { description: "Supplier updated successfully" },
+    400: { description: "Validation error", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+    403: { description: "Missing procurement:write permission", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+    404: { description: "Supplier not found", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
   },
 });
 
