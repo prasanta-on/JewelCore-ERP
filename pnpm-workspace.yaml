@@ -3,6 +3,6 @@ packages:
   - "apps/*"
 
 allowBuilds:
-  '@scarf/scarf': set this to true or false
+  '@scarf/scarf': false
   esbuild: true
   msgpackr-extract: true
