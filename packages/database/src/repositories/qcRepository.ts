@@ -20,6 +20,8 @@ import {
   BadRequestError,
   ForbiddenError,
   type ToleranceEvaluationResult,
+  type QualityDecisionRecord,
+  QualityDecisionType,
 } from "@jewelcore/shared";
 import { getPool } from "../pool.js";
 import { uuidv7 } from "../uuidv7.js";
@@ -1829,4 +1831,312 @@ export async function evaluateIntakeWeightTolerance(
     return executeEvaluation(clientOverride);
   }
   return withTransaction((tx) => executeEvaluation(tx.rawClient));
+}
+
+// -------------------------------------------------------------
+// Quality Decisions & Damage-Waiver Protocol (Entity 27 - FEAT-QC-06 / Gap 3)
+// -------------------------------------------------------------
+
+export interface QualityDecisionRow {
+  id: string;
+  quality_check_id: string;
+  quality_check_item_id: string | null;
+  decision: QualityDecisionType;
+  decided_by_user_id: string;
+  decided_at: Date;
+  reason_code: string | null;
+  notes: string | null;
+  created_at: Date;
+}
+
+export function mapRowToQualityDecision(
+  row: QualityDecisionRow,
+): QualityDecisionRecord {
+  return {
+    id: row.id,
+    qualityCheckId: row.quality_check_id,
+    qualityCheckItemId: row.quality_check_item_id,
+    decision: row.decision,
+    decidedByUserId: row.decided_by_user_id,
+    decidedAt: row.decided_at,
+    reasonCode: row.reason_code,
+    notes: row.notes,
+    createdAt: row.created_at,
+  };
+}
+
+export interface CreateQualityDecisionParams {
+  qualityCheckId?: string;
+  qualityCheckItemId?: string | null;
+  decision: QualityDecisionType;
+  reasonCode?: string | null;
+  notes?: string | null;
+  decidedByUserId?: string;
+}
+
+/**
+ * Creates an immutable quality decision audit record (Entity 27 - FEAT-QC-06).
+ *
+ * Implements:
+ * - Scenario 1: Standard Approval Decision Recording (sets item status = APPROVED)
+ * - Scenario 2: Supervisor Damage Waiver Authorization (requires qc:waiver, reason_code = DAMAGE_WAIVER, notes)
+ * - Scenario 3: Unauthorized Damage Waiver Rejection (ERR_SUPERVISOR_WAIVER_REQUIRED, 403)
+ * - Immutability trigger enforcement (INV-09)
+ * - Sealed session immutability gate (ERR_SESSION_SEALED)
+ */
+export async function createQualityDecision(
+  params: CreateQualityDecisionParams,
+  userContext?: {
+    userId: string;
+    role?: string;
+    hasWaiverPermission?: boolean;
+    hasToleranceAdminPermission?: boolean;
+    permissions?: string[];
+  },
+  clientOverride?: Queryable,
+): Promise<QualityDecisionRecord> {
+  const executeDecision = async (client: Queryable) => {
+    let qcId = params.qualityCheckId;
+    const decidedByUserId = params.decidedByUserId ?? userContext?.userId;
+
+    if (!decidedByUserId) {
+      throw new BadRequestError(
+        "Authorizing user ID (decidedByUserId) is required",
+      );
+    }
+
+    if (params.qualityCheckItemId) {
+      // 1. Piece-level decision
+      const itemRes = await client.query<
+        QualityCheckItemRow & {
+          session_id: string;
+          session_status: QualityCheckStatusType;
+          store_id: string;
+        }
+      >(
+        `
+        SELECT
+          qci.*,
+          qc.id AS session_id,
+          qc.status AS session_status,
+          qc.store_id
+        FROM quality_check_items qci
+        JOIN quality_checks qc ON qci.quality_check_id = qc.id
+        WHERE qci.id = $1
+        FOR UPDATE OF qci
+        `,
+        [params.qualityCheckItemId],
+      );
+
+      const qci = itemRes.rows[0];
+      if (!qci) {
+        throw new NotFoundError(
+          `Quality check item with ID '${params.qualityCheckItemId}' not found`,
+          "ERR_QC_ITEM_NOT_FOUND",
+        );
+      }
+
+      if (SEALED_QC_STATUSES.includes(qci.session_status)) {
+        throw new UnprocessableEntityError(
+          `Inspection session is ${qci.session_status} and sealed; modifications are strictly prohibited`,
+          "ERR_SESSION_SEALED",
+        );
+      }
+
+      qcId = qci.session_id;
+
+      if (params.decision === QualityDecisionType.APPROVED) {
+        // Enforce supervisor damage waiver protocol (Scenario 2 & 3 / Gap 3)
+        if (qci.damage_detected === true) {
+          const hasWaiverPermission =
+            userContext?.hasWaiverPermission ||
+            userContext?.role === "SYSTEM_ADMIN" ||
+            userContext?.role === "STORE_MANAGER" ||
+            userContext?.permissions?.includes("qc:waiver");
+
+          if (!hasWaiverPermission) {
+            throw new ForbiddenError(
+              "Approval of damaged item requires supervisor damage waiver authorization (qc:waiver)",
+              "ERR_SUPERVISOR_WAIVER_REQUIRED",
+            );
+          }
+
+          if (params.reasonCode !== "DAMAGE_WAIVER") {
+            throw new UnprocessableEntityError(
+              "Approval with detected damage requires reason_code = 'DAMAGE_WAIVER' and justification notes",
+              "ERR_DAMAGE_WAIVER_REQUIRED",
+            );
+          }
+
+          if (!params.notes || params.notes.trim() === "") {
+            throw new UnprocessableEntityError(
+              "Justification notes are mandatory when granting a supervisor damage waiver override",
+              "ERR_DAMAGE_WAIVER_REQUIRED",
+            );
+          }
+        }
+
+        // Apply approval on item
+        await updateQualityCheckItem(
+          qci.id,
+          {
+            status: QualityCheckItemStatus.APPROVED,
+            isSupervisorWaiver: qci.damage_detected === true,
+            waiverNotes: params.notes,
+            decisionByUserId: decidedByUserId,
+          },
+          userContext,
+          client,
+        );
+      } else if (params.decision === QualityDecisionType.REJECTED) {
+        await updateQualityCheckItem(
+          qci.id,
+          {
+            status: QualityCheckItemStatus.REJECTED,
+            rejectionReason: params.notes ?? params.reasonCode,
+            decisionByUserId: decidedByUserId,
+          },
+          userContext,
+          client,
+        );
+      }
+    } else {
+      // 2. Session-level decision
+      if (!qcId) {
+        throw new BadRequestError(
+          "qualityCheckId or qualityCheckItemId is required for quality decision",
+        );
+      }
+
+      const qcRes = await client.query<QualityCheckRow>(
+        `SELECT * FROM quality_checks WHERE id = $1 FOR UPDATE`,
+        [qcId],
+      );
+
+      const qc = qcRes.rows[0];
+      if (!qc) {
+        throw new NotFoundError(
+          `Quality inspection session with ID '${qcId}' not found`,
+          "ERR_QC_NOT_FOUND",
+        );
+      }
+
+      if (SEALED_QC_STATUSES.includes(qc.status)) {
+        throw new UnprocessableEntityError(
+          `Inspection session is ${qc.status} and sealed; modifications are strictly prohibited`,
+          "ERR_SESSION_SEALED",
+        );
+      }
+
+      if (params.decision === QualityDecisionType.APPROVED) {
+        await client.query(
+          `
+          UPDATE quality_checks
+          SET
+            status = 'APPROVED',
+            completed_at = clock_timestamp(),
+            updated_at = clock_timestamp()
+          WHERE id = $1
+          `,
+          [qcId],
+        );
+      } else if (params.decision === QualityDecisionType.REJECTED) {
+        await client.query(
+          `
+          UPDATE quality_checks
+          SET
+            status = 'REJECTED',
+            completed_at = clock_timestamp(),
+            rejection_reason_code = $2,
+            rejection_notes = $3,
+            updated_at = clock_timestamp()
+          WHERE id = $1
+          `,
+          [qcId, params.reasonCode, params.notes],
+        );
+      }
+    }
+
+    // 3. Persist immutable decision record (Entity 27)
+    const decisionId = uuidv7();
+    const insertRes = await client.query<QualityDecisionRow>(
+      `
+      INSERT INTO quality_decisions (
+        id,
+        quality_check_id,
+        quality_check_item_id,
+        decision,
+        decided_by_user_id,
+        decided_at,
+        reason_code,
+        notes,
+        created_at
+      ) VALUES ($1, $2, $3, $4, $5, clock_timestamp(), $6, $7, clock_timestamp())
+      RETURNING *
+      `,
+      [
+        decisionId,
+        qcId,
+        params.qualityCheckItemId ?? null,
+        params.decision,
+        decidedByUserId,
+        params.reasonCode ?? null,
+        params.notes ?? null,
+      ],
+    );
+
+    const row = insertRes.rows[0];
+    if (!row) {
+      throw new Error("Failed to persist quality decision");
+    }
+
+    return mapRowToQualityDecision(row);
+  };
+
+  if (clientOverride) {
+    return executeDecision(clientOverride);
+  }
+  return withTransaction((tx) => executeDecision(tx.rawClient));
+}
+
+/**
+ * Lists all decision audit records for a specific QC item.
+ */
+export async function listQualityDecisionsByItemId(
+  qcItemId: string,
+  clientOverride?: Queryable,
+): Promise<QualityDecisionRecord[]> {
+  const executor = clientOverride ?? getPool();
+  const res = await executor.query<QualityDecisionRow>(
+    `
+    SELECT *
+    FROM quality_decisions
+    WHERE quality_check_item_id = $1
+    ORDER BY decided_at DESC
+    `,
+    [qcItemId],
+  );
+
+  return res.rows.map(mapRowToQualityDecision);
+}
+
+/**
+ * Lists all decision audit records for a QC inspection session.
+ */
+export async function listQualityDecisionsBySessionId(
+  qcSessionId: string,
+  clientOverride?: Queryable,
+): Promise<QualityDecisionRecord[]> {
+  const executor = clientOverride ?? getPool();
+  const res = await executor.query<QualityDecisionRow>(
+    `
+    SELECT *
+    FROM quality_decisions
+    WHERE quality_check_id = $1
+    ORDER BY decided_at DESC
+    `,
+    [qcSessionId],
+  );
+
+  return res.rows.map(mapRowToQualityDecision);
 }

@@ -9,8 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-07
+
 ### Added
 
+- **Quality Decision Authorization & Damage-Waiver Protocol (`FEAT-QC-06` / `INV-09`, `INV-18` Tier D, Gap 3)**:
+  - Implemented immutable `quality_decisions` (Entity 27) append-only audit trail capturing formal inspection outcomes (`APPROVED`, `REJECTED`, `ESCALATED_FOR_REINSPECTION`).
+  - Enforced `INV-09` append-only immutability via database trigger `trg_quality_decisions_immutability`, strictly prohibiting `UPDATE` and `DELETE` operations with SQLSTATE `23514`.
+  - Implemented Supervisor Damage Waiver protocol (`INV-18` Tier D / Gap 3):
+    - Items with detected physical damage (`damage_detected = true`) strictly require `reason_code = 'DAMAGE_WAIVER'` and mandatory non-empty justification notes.
+    - Authorized supervisor override permission `qc:waiver` seeded in migration `00020_create_qc_decisions` and granted to `STORE_MANAGER` and `SYSTEM_ADMIN`.
+    - Non-supervisors attempting to approve damaged pieces are rejected with 403 `ERR_SUPERVISOR_WAIVER_REQUIRED`.
+    - Approvals without `reason_code = 'DAMAGE_WAIVER'` or missing notes on damaged items fail with 422 `ERR_DAMAGE_WAIVER_REQUIRED`.
+  - Implemented piece-level and session-level decision endpoints:
+    - `POST /api/v1/qc/items/:id/decisions` (`qc:approve` permission)
+    - `GET /api/v1/qc/items/:id/decisions` (`qc:view` permission)
+    - `POST /api/v1/qc/checks/:id/decisions` (`qc:approve` permission)
+    - `GET /api/v1/qc/checks/:id/decisions` (`qc:view` permission)
+  - Enforced multi-store isolation (`INV-11` / `ERR_STORE_ACCESS_DENIED`, 403) and sealed session immutability (`ERR_SESSION_SEALED`, 422).
+  - Registered all decision schemas and endpoints in OpenAPI 3.1 documentation.
 - **Intake Weight Tolerance & Discrepancy Gate (`FEAT-QC-05` / `INV-12`)**:
   - Implemented configurable intake weight discrepancy evaluation engine:
     - Default $\pm 0.0200\text{g}$ absolute tolerance threshold under `BIZ-Q03` baseline.

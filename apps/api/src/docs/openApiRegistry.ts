@@ -43,6 +43,7 @@ import {
   updateQualityCheckItemSchema,
   createItemGemstoneSchema,
   evaluateToleranceSchema,
+  createQualityDecisionSchema,
 } from "@jewelcore/shared";
 
 extendZodWithOpenApi(z);
@@ -2232,6 +2233,195 @@ registry.registerPath({
     },
     404: {
       description: "QC item not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/qc/items/{id}/decisions",
+  summary: "Record Quality Decision on QC Item (FEAT-QC-06)",
+  description:
+    "Records an immutable quality control decision (APPROVED, REJECTED, ESCALATED_FOR_REINSPECTION) on an inspected piece. Enforces prerequisite inspections and supervisor damage waiver protocol (Gap 3).",
+  tags: ["Quality Control"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      description: "QC inspection item UUID",
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  request: {
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: createQualityDecisionSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Quality decision recorded successfully",
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description:
+        "Insufficient permissions (requires qc:approve or qc:waiver for damaged items) or store context violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    404: {
+      description: "QC item not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description:
+        "Prerequisite inspection criteria not met, missing waiver notes, or sealed session",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/qc/items/{id}/decisions",
+  summary: "List Quality Decisions for Item (FEAT-QC-06)",
+  description:
+    "Lists all immutable decision audit records for an inspected piece.",
+  tags: ["Quality Control"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      description: "QC inspection item UUID",
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: {
+      description: "Quality decisions retrieved successfully",
+    },
+    403: {
+      description: "Insufficient permissions or store context violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    404: {
+      description: "QC item not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/qc/checks/{id}/decisions",
+  summary: "Record Quality Decision on Session (FEAT-QC-06)",
+  description: "Records an immutable session-level quality decision.",
+  tags: ["Quality Control"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      description: "QC inspection session UUID",
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  request: {
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: createQualityDecisionSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Quality session decision recorded successfully",
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description: "Insufficient permissions or store context violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    404: {
+      description: "QC session not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description: "Inspection session is sealed",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/qc/checks/{id}/decisions",
+  summary: "List Quality Decisions for Session (FEAT-QC-06)",
+  description:
+    "Lists all immutable decision audit records for a QC inspection session.",
+  tags: ["Quality Control"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      description: "QC inspection session UUID",
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: {
+      description: "Quality decisions retrieved successfully",
+    },
+    403: {
+      description: "Insufficient permissions or store context violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    404: {
+      description: "QC session not found",
       content: {
         "application/problem+json": { schema: ProblemDocumentSchema },
       },

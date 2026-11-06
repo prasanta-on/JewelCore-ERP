@@ -19,6 +19,7 @@ import { migration00016CreateQcQualityChecks } from "./00016_create_qc_quality_c
 import { migration00017CreateQcWeightMeasurements } from "./00017_create_qc_weight_measurements.js";
 import { migration00018CreateQcItemsAndGemstones } from "./00018_create_qc_items_and_gemstones.js";
 import { migration00019CreateQcTolerancePermissions } from "./00019_create_qc_tolerance_permissions.js";
+import { migration00020CreateQcDecisions } from "./00020_create_qc_decisions.js";
 
 export const allMigrations: MigrationDefinition[] = [
   migration00001CreateIamOrganizationsAndStores,
@@ -40,6 +41,7 @@ export const allMigrations: MigrationDefinition[] = [
   migration00017CreateQcWeightMeasurements,
   migration00018CreateQcItemsAndGemstones,
   migration00019CreateQcTolerancePermissions,
+  migration00020CreateQcDecisions,
 ];
 
 /**
@@ -68,3 +70,4 @@ export * from "./00016_create_qc_quality_checks.js";
 export * from "./00017_create_qc_weight_measurements.js";
 export * from "./00018_create_qc_items_and_gemstones.js";
 export * from "./00019_create_qc_tolerance_permissions.js";
+export * from "./00020_create_qc_decisions.js";

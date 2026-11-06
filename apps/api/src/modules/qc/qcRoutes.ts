@@ -19,6 +19,10 @@ import {
   addItemGemstoneHandler,
   listItemGemstonesHandler,
   evaluateItemToleranceHandler,
+  createItemDecisionHandler,
+  listItemDecisionsHandler,
+  createSessionDecisionHandler,
+  listSessionDecisionsHandler,
 } from "./qcController.js";
 
 export function createQcRouter(): Router {
@@ -93,6 +97,28 @@ export function createQcRouter(): Router {
     "/items/:id/gemstones",
     requirePermission("qc:view"),
     listItemGemstonesHandler,
+  );
+
+  // Quality Decisions & Authorization Protocol (Entity 27 - FEAT-QC-06 / INV-09, INV-18)
+  router.post(
+    "/items/:id/decisions",
+    requirePermission("qc:approve"),
+    createItemDecisionHandler,
+  );
+  router.get(
+    "/items/:id/decisions",
+    requirePermission("qc:view"),
+    listItemDecisionsHandler,
+  );
+  router.post(
+    "/checks/:id/decisions",
+    requirePermission("qc:approve"),
+    createSessionDecisionHandler,
+  );
+  router.get(
+    "/checks/:id/decisions",
+    requirePermission("qc:view"),
+    listSessionDecisionsHandler,
   );
 
   return router;

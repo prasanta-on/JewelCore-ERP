@@ -31,8 +31,8 @@ The Implementation Backlog contains **35 vertical slice features** covering 100%
 | Priority Distribution            | P0 Blocker: 18 Features (101 pts) | P1 Critical: 14 Features (60 pts) | P2: 3 Features (13 pts) |
 | Directly Gate-Blocked Features   | 9 Features (49 pts) blocked by BIZ-Q01/Q02/Q03/DEC-05          |
 | Predecessor-Blocked Features     | 22 Features (109 pts) blocked by upstream feature completion   |
-| Completed Features               | 23 Features (114 pts) verified and committed (Sprint 0, Sprint 1, Sprint 2, Sprint 3 Complete; Sprint 4 in progress) |
-| READY_FOR_DEV Features           | 1 Feature (5 pts) unblocked, immediately executable (FEAT-QC-06) |
+| Completed Features               | 24 Features (119 pts) verified and committed (Sprint 0, Sprint 1, Sprint 2, Sprint 3, Sprint 4 Complete) |
+| READY_FOR_DEV Features           | 1 Feature (8 pts) unblocked, immediately executable (FEAT-INV-01) |
 | PREP_READY Features              | 1 Feature (5 pts) architectural preparation unblocked          |
 | Target Delivery Sprints          | Sprint 0 through Sprint 6 (7 Two-Week Sprints = 14 Weeks)      |
 +---------------------------------------------------------------------------------------------------+
@@ -69,8 +69,8 @@ The Implementation Backlog contains **35 vertical slice features** covering 100%
 | **`FEAT-QC-03`**    | Gemstone Parcel Grading                  | QC          | `item_gemstones` (26)                                                  | **P1**   | Resolved (`DEC-05` Approved)                                             | `FEAT-QC-01`, `TAX-05`                  |    **5**     | `COMPLETED`     |   Sprint 4    |
 | **`FEAT-QC-04`**    | QC Item 3VL Inspection & Checks          | QC          | `quality_check_items` (24)                                             | **P0**   | UNBLOCKED                                                                | `FEAT-QC-01`, `02`, `03`                |    **8**     | `COMPLETED`     |   Sprint 4    |
 | **`FEAT-QC-05`**    | Intake Weight Tolerance Gate             | QC          | `quality_checks` (23), `quality_check_items` (24)                      | **P0**   | Resolved (`BIZ-Q03` Approved)                                            | `FEAT-QC-04`, `PROC-03`                 |    **5**     | `COMPLETED`     |   Sprint 4    |
-| **`FEAT-QC-06`**    | Quality Decision Authorization & Waiver  | QC          | `quality_decisions` (27)                                               | **P0**   | UNBLOCKED                                                                | `FEAT-QC-05`                            |    **5**     | `READY_FOR_DEV` |   Sprint 4    |
-| **`FEAT-INV-01`**   | Serialized Piece Birth & Lineage         | Inventory   | `inventory_items` (28)                                                 | **P0**   | Requires `FEAT-QC-06`                                                    | `FEAT-QC-06`, `STOR-01`, `TAX-05`       |    **8**     | `BLOCKED`       |   Sprint 5    |
+| **`FEAT-QC-06`**    | Quality Decision Authorization & Waiver  | QC          | `quality_decisions` (27)                                               | **P0**   | UNBLOCKED                                                                | `FEAT-QC-05`                            |    **5**     | `COMPLETED`     |   Sprint 4    |
+| **`FEAT-INV-01`**   | Serialized Piece Birth & Lineage         | Inventory   | `inventory_items` (28)                                                 | **P0**   | UNBLOCKED                                                                | `FEAT-QC-06`, `STOR-01`, `TAX-05`       |    **8**     | `READY_FOR_DEV` |   Sprint 5    |
 | **`FEAT-INV-02`**   | Bulk Stock Balances & Depletion          | Inventory   | `inventory_stock_balances` (29)                                        | **P1**   | Blocked by `BIZ-Q02` & `BIZ-Q01`                                         | `FEAT-STOR-01`, `TAX-05`                |    **5**     | `BLOCKED`       |   Sprint 5    |
 | **`FEAT-INV-03`**   | Unified Custody Movement Ledger          | Inventory   | `inventory_movements` (30)                                             | **P0**   | Requires `FEAT-INV-01`, `FEAT-INV-02`                                    | `FEAT-INV-01`, `FEAT-INV-02`, `STOR-01` |    **8**     | `BLOCKED`       |   Sprint 5    |
 | **`FEAT-INV-04`**   | State History & OCC Concurrency          | Inventory   | `inventory_status_history` (31)                                        | **P1**   | Requires `FEAT-INV-03`                                                   | `FEAT-INV-03`                           |    **5**     | `BLOCKED`       |   Sprint 5    |
@@ -125,16 +125,16 @@ The Implementation Backlog contains **35 vertical slice features** covering 100%
   - `FEAT-PROC-04`: Receiving Staff Assignment & Handoff (3 pts)
   - `FEAT-GOV-03`: Polymorphic Document & File Storage (5 pts)
 
-### Sprint 4: Analytical Quality Control & Metrology (Weeks 9–10) — 33 Story Points
+### Sprint 4: Analytical Quality Control & Metrology (Weeks 9–10) — 33 Story Points (100% COMPLETE)
 
 - **Focus:** Analytical scale weighing, gemstone grading, 3VL boolean verification, intake tolerance evaluation, and quality decisions.
 - **Features Delivered:**
-  - `FEAT-QC-01`: Quality Inspection Sessions (5 pts)
-  - `FEAT-QC-02`: Analytical Balance Metrology (5 pts) [Requires `DEC-05` approval]
-  - `FEAT-QC-03`: Gemstone Parcel Grading (5 pts) [Requires `DEC-05` approval]
-  - `FEAT-QC-04`: QC Item 3VL Inspection & Checks (8 pts)
-  - `FEAT-QC-05`: Intake Weight Tolerance Gate (5 pts) [Requires `BIZ-Q03` approval]
-  - `FEAT-QC-06`: Quality Decision Authorization & Waiver (5 pts)
+  - `FEAT-QC-01`: Quality Inspection Sessions (5 pts) — COMPLETED
+  - `FEAT-QC-02`: Analytical Balance Metrology (5 pts) — COMPLETED
+  - `FEAT-QC-03`: Gemstone Parcel Grading (5 pts) — COMPLETED
+  - `FEAT-QC-04`: QC Item 3VL Inspection & Checks (8 pts) — COMPLETED
+  - `FEAT-QC-05`: Intake Weight Tolerance Gate (5 pts) — COMPLETED
+  - `FEAT-QC-06`: Quality Decision Authorization & Waiver (5 pts) — COMPLETED
 
 ### Sprint 5: Physical Inventory & Custody Ledger (Weeks 11–12) — 26 Story Points
 

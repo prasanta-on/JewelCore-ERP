@@ -466,3 +466,42 @@ export interface ItemGemstoneRecord {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// -------------------------------------------------------------
+// Quality Decision Authorization & Damage-Waiver Protocol (FEAT-QC-06 / Gap 3)
+// -------------------------------------------------------------
+
+export const QualityDecisionType = {
+  APPROVED: "APPROVED",
+  REJECTED: "REJECTED",
+  ESCALATED_FOR_REINSPECTION: "ESCALATED_FOR_REINSPECTION",
+} as const;
+
+export type QualityDecisionType =
+  (typeof QualityDecisionType)[keyof typeof QualityDecisionType];
+
+export const createQualityDecisionSchema = z.object({
+  decision: z.enum([
+    QualityDecisionType.APPROVED,
+    QualityDecisionType.REJECTED,
+    QualityDecisionType.ESCALATED_FOR_REINSPECTION,
+  ]),
+  reasonCode: z.string().max(50).optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+export type CreateQualityDecisionInput = z.infer<
+  typeof createQualityDecisionSchema
+>;
+
+export interface QualityDecisionRecord {
+  id: string;
+  qualityCheckId: string;
+  qualityCheckItemId: string | null;
+  decision: QualityDecisionType;
+  decidedByUserId: string;
+  decidedAt: Date;
+  reasonCode: string | null;
+  notes: string | null;
+  createdAt: Date;
+}

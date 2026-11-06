@@ -7,6 +7,7 @@ import {
   updateQualityCheckItemSchema,
   createItemGemstoneSchema,
   evaluateToleranceSchema,
+  createQualityDecisionSchema,
   QualityCheckStatus,
   SEALED_QC_STATUSES,
   BadRequestError,
@@ -30,6 +31,9 @@ import {
   addItemGemstone,
   listItemGemstonesByQcItemId,
   evaluateIntakeWeightTolerance,
+  createQualityDecision,
+  listQualityDecisionsByItemId,
+  listQualityDecisionsBySessionId,
   getUserRoles,
   getUserPermissionCodes,
 } from "@jewelcore/database";
@@ -759,6 +763,265 @@ export async function listItemGemstonesHandler(
 
     const gemstones = await listItemGemstonesByQcItemId(itemId);
     res.status(200).json(gemstones);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Records a formal quality control decision or supervisor waiver on an inspected piece (FEAT-QC-06).
+ *
+ * Implements:
+ * - Scenario 1: Standard Approval Decision Recording (creates quality_decisions row, sets item status = APPROVED)
+ * - Scenario 2: Supervisor Damage Waiver Authorization (requires qc:waiver, reason_code = DAMAGE_WAIVER, notes)
+ * - Scenario 3: Unauthorized Damage Waiver Rejection (ERR_SUPERVISOR_WAIVER_REQUIRED, 403)
+ * - Multi-Store Isolation (INV-11)
+ * - Sealed Session Gate (ERR_SESSION_SEALED)
+ */
+export async function createItemDecisionHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const itemId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+    if (!itemId) {
+      throw new BadRequestError("Quality check item ID parameter is required");
+    }
+
+    const sessionContext = await getQualityCheckItemWithSession(itemId);
+    if (!sessionContext) {
+      throw new NotFoundError(
+        `Quality check item with ID '${itemId}' not found`,
+        "ERR_QC_ITEM_NOT_FOUND",
+      );
+    }
+
+    // Invariant INV-11: store context check
+    const activeStoreId =
+      req.storeContext?.storeId ??
+      (typeof req.headers["x-store-id"] === "string"
+        ? req.headers["x-store-id"]
+        : undefined);
+
+    if (activeStoreId && activeStoreId !== sessionContext.storeId) {
+      throw new ForbiddenError(
+        `Cross-store access denied: session belongs to store '${sessionContext.storeId}', but request is scoped to '${activeStoreId}'`,
+        "ERR_STORE_ACCESS_DENIED",
+      );
+    }
+
+    // Sealed Session Gate
+    if (SEALED_QC_STATUSES.includes(sessionContext.sessionStatus)) {
+      throw new UnprocessableEntityError(
+        `Inspection session is ${sessionContext.sessionStatus} and sealed; modifications are strictly prohibited`,
+        "ERR_SESSION_SEALED",
+      );
+    }
+
+    const input = createQualityDecisionSchema.parse(req.body);
+
+    const userRoles = await getUserRoles(req.user!.userId);
+    const isSystemAdmin = userRoles.some((r) => r.code === "SYSTEM_ADMIN");
+    const isStoreManager = userRoles.some((r) => r.code === "STORE_MANAGER");
+    const userPermissions = await getUserPermissionCodes(req.user!.userId);
+    const hasWaiverPermission =
+      isSystemAdmin || isStoreManager || userPermissions.includes("qc:waiver");
+    const hasToleranceAdmin =
+      isSystemAdmin || userPermissions.includes("qc:tolerance:admin");
+
+    const decision = await createQualityDecision(
+      {
+        qualityCheckItemId: itemId,
+        decision: input.decision,
+        reasonCode: input.reasonCode,
+        notes: input.notes,
+        decidedByUserId: req.user!.userId,
+      },
+      {
+        userId: req.user!.userId,
+        role: isSystemAdmin
+          ? "SYSTEM_ADMIN"
+          : isStoreManager
+            ? "STORE_MANAGER"
+            : undefined,
+        hasWaiverPermission,
+        hasToleranceAdminPermission: hasToleranceAdmin,
+        permissions: userPermissions,
+      },
+    );
+
+    res.status(201).json(decision);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Lists all decision audit records for a QC item.
+ */
+export async function listItemDecisionsHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const itemId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+    if (!itemId) {
+      throw new BadRequestError("Quality check item ID parameter is required");
+    }
+
+    const sessionContext = await getQualityCheckItemWithSession(itemId);
+    if (!sessionContext) {
+      throw new NotFoundError(
+        `Quality check item with ID '${itemId}' not found`,
+        "ERR_QC_ITEM_NOT_FOUND",
+      );
+    }
+
+    const activeStoreId =
+      req.storeContext?.storeId ??
+      (typeof req.headers["x-store-id"] === "string"
+        ? req.headers["x-store-id"]
+        : undefined);
+
+    if (activeStoreId && activeStoreId !== sessionContext.storeId) {
+      throw new ForbiddenError(
+        "Access to the requested store context is denied",
+        "ERR_STORE_ACCESS_DENIED",
+      );
+    }
+
+    const decisions = await listQualityDecisionsByItemId(itemId);
+    res.status(200).json(decisions);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Records a session-level quality decision.
+ */
+export async function createSessionDecisionHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const qcId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+    if (!qcId) {
+      throw new BadRequestError("Quality check ID parameter is required");
+    }
+
+    const session = await getQualityCheckById(qcId);
+    if (!session) {
+      throw new NotFoundError(
+        `Quality inspection session with ID '${qcId}' not found`,
+        "ERR_QC_NOT_FOUND",
+      );
+    }
+
+    const activeStoreId =
+      req.storeContext?.storeId ??
+      (typeof req.headers["x-store-id"] === "string"
+        ? req.headers["x-store-id"]
+        : undefined);
+
+    if (activeStoreId && activeStoreId !== session.storeId) {
+      throw new ForbiddenError(
+        "Access to the requested store context is denied",
+        "ERR_STORE_ACCESS_DENIED",
+      );
+    }
+
+    if (SEALED_QC_STATUSES.includes(session.status)) {
+      throw new UnprocessableEntityError(
+        `Inspection session is ${session.status} and sealed; modifications are strictly prohibited`,
+        "ERR_SESSION_SEALED",
+      );
+    }
+
+    const input = createQualityDecisionSchema.parse(req.body);
+
+    const userRoles = await getUserRoles(req.user!.userId);
+    const isSystemAdmin = userRoles.some((r) => r.code === "SYSTEM_ADMIN");
+    const isStoreManager = userRoles.some((r) => r.code === "STORE_MANAGER");
+    const userPermissions = await getUserPermissionCodes(req.user!.userId);
+
+    const decision = await createQualityDecision(
+      {
+        qualityCheckId: qcId,
+        decision: input.decision,
+        reasonCode: input.reasonCode,
+        notes: input.notes,
+        decidedByUserId: req.user!.userId,
+      },
+      {
+        userId: req.user!.userId,
+        role: isSystemAdmin
+          ? "SYSTEM_ADMIN"
+          : isStoreManager
+            ? "STORE_MANAGER"
+            : undefined,
+        hasWaiverPermission:
+          isSystemAdmin ||
+          isStoreManager ||
+          userPermissions.includes("qc:waiver"),
+        permissions: userPermissions,
+      },
+    );
+
+    res.status(201).json(decision);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Lists all decision records for a QC inspection session.
+ */
+export async function listSessionDecisionsHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const qcId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+    if (!qcId) {
+      throw new BadRequestError("Quality check ID parameter is required");
+    }
+
+    const session = await getQualityCheckById(qcId);
+    if (!session) {
+      throw new NotFoundError(
+        `Quality inspection session with ID '${qcId}' not found`,
+        "ERR_QC_NOT_FOUND",
+      );
+    }
+
+    const activeStoreId =
+      req.storeContext?.storeId ??
+      (typeof req.headers["x-store-id"] === "string"
+        ? req.headers["x-store-id"]
+        : undefined);
+
+    if (activeStoreId && activeStoreId !== session.storeId) {
+      throw new ForbiddenError(
+        "Access to the requested store context is denied",
+        "ERR_STORE_ACCESS_DENIED",
+      );
+    }
+
+    const decisions = await listQualityDecisionsBySessionId(qcId);
+    res.status(200).json(decisions);
   } catch (err) {
     next(err);
   }
