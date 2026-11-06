@@ -5,7 +5,12 @@ import {
   createGrnSchema,
   updateGrnSchema,
   closeGrnSchema,
+  createShipmentSchema,
+  updateShipmentSchema,
+  createShipmentItemInputSchema,
+  updateShipmentItemSchema,
   type GrnStatus,
+  type ShipmentStatus,
   NotFoundError,
   BadRequestError,
 } from "@jewelcore/shared";
@@ -19,6 +24,12 @@ import {
   listGrns,
   updateGrn,
   closeGrn,
+  createShipment,
+  getShipmentWithItems,
+  listShipments,
+  updateShipment,
+  addShipmentItem,
+  updateShipmentItem,
 } from "@jewelcore/database";
 
 export async function createSupplierHandler(
@@ -296,6 +307,164 @@ export async function closeGrnHandler(
 
     res.status(200).json({
       data: closed,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ==========================================
+// Inbound Shipments & Line Items Handlers (FEAT-PROC-03)
+// ==========================================
+
+export async function createShipmentHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestError(
+        "User authentication is required",
+        "ERR_UNAUTHENTICATED",
+      );
+    }
+
+    const validated = createShipmentSchema.parse(req.body);
+    const shipment = await createShipment({
+      ...validated,
+      receivedByUserId: userId,
+    });
+
+    res.status(201).json({
+      data: shipment,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listShipmentsHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const goodsReceiptNoteId = req.query.goodsReceiptNoteId as
+      string | undefined;
+    const status = req.query.status as ShipmentStatus | undefined;
+
+    const shipments = await listShipments({
+      goodsReceiptNoteId,
+      status,
+    });
+
+    res.status(200).json({
+      data: shipments,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getShipmentHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const rawId = req.params.id;
+    const id = Array.isArray(rawId) ? rawId[0] : rawId;
+    if (!id) {
+      throw new BadRequestError("Shipment ID is required", "ERR_INVALID_ID");
+    }
+
+    const shipment = await getShipmentWithItems(id);
+    if (!shipment) {
+      throw new NotFoundError("Shipment", id);
+    }
+
+    res.status(200).json({
+      data: shipment,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateShipmentHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const rawId = req.params.id;
+    const id = Array.isArray(rawId) ? rawId[0] : rawId;
+    if (!id) {
+      throw new BadRequestError("Shipment ID is required", "ERR_INVALID_ID");
+    }
+
+    const validated = updateShipmentSchema.parse(req.body);
+    const updated = await updateShipment(id, validated);
+
+    res.status(200).json({
+      data: updated,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function addShipmentItemHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const rawId = req.params.id;
+    const shipmentId = Array.isArray(rawId) ? rawId[0] : rawId;
+    if (!shipmentId) {
+      throw new BadRequestError("Shipment ID is required", "ERR_INVALID_ID");
+    }
+
+    const validated = createShipmentItemInputSchema.parse(req.body);
+    const item = await addShipmentItem(shipmentId, validated);
+
+    res.status(201).json({
+      data: item,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateShipmentItemHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const rawItemId = req.params.itemId;
+    const itemId = Array.isArray(rawItemId) ? rawItemId[0] : rawItemId;
+    if (!itemId) {
+      throw new BadRequestError(
+        "Shipment Item ID is required",
+        "ERR_INVALID_ID",
+      );
+    }
+
+    const validated = updateShipmentItemSchema.parse(req.body);
+    const updated = await updateShipmentItem(itemId, validated);
+
+    res.status(200).json({
+      data: updated,
       timestamp: new Date().toISOString(),
     });
   } catch (err) {

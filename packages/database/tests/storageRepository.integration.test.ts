@@ -28,14 +28,22 @@ describe("Storage Hierarchy Repository Integration Tests (INV-05, INV-17)", () =
   beforeAll(async () => {
     await runAllMigrations();
 
-    await query("DELETE FROM compartments WHERE code LIKE 'STOR_%';");
-    await query("DELETE FROM lockers WHERE code LIKE 'STOR_%';");
-    await query("DELETE FROM vaults WHERE code LIKE 'STOR_%';");
     await query(
-      "DELETE FROM store_memberships WHERE store_id IN (SELECT id FROM stores WHERE code LIKE 'STOR_%');",
+      "DELETE FROM compartments WHERE locker_id IN (SELECT id FROM lockers WHERE vault_id IN (SELECT id FROM vaults WHERE store_id IN (SELECT id FROM stores WHERE code IN ('STOR_STORE_A', 'STOR_STORE_B'))));",
     );
-    await query("DELETE FROM stores WHERE code LIKE 'STOR_%';");
-    await query("DELETE FROM organizations WHERE code LIKE 'STOR_%';");
+    await query(
+      "DELETE FROM lockers WHERE vault_id IN (SELECT id FROM vaults WHERE store_id IN (SELECT id FROM stores WHERE code IN ('STOR_STORE_A', 'STOR_STORE_B')));",
+    );
+    await query(
+      "DELETE FROM vaults WHERE store_id IN (SELECT id FROM stores WHERE code IN ('STOR_STORE_A', 'STOR_STORE_B'));",
+    );
+    await query(
+      "DELETE FROM store_memberships WHERE store_id IN (SELECT id FROM stores WHERE code IN ('STOR_STORE_A', 'STOR_STORE_B'));",
+    );
+    await query(
+      "DELETE FROM stores WHERE code IN ('STOR_STORE_A', 'STOR_STORE_B');",
+    );
+    await query("DELETE FROM organizations WHERE code = 'STOR_TEST_ORG';");
 
     const org = await createOrganization({
       code: "STOR_TEST_ORG",
@@ -65,14 +73,22 @@ describe("Storage Hierarchy Repository Integration Tests (INV-05, INV-17)", () =
   });
 
   afterAll(async () => {
-    await query("DELETE FROM compartments WHERE code LIKE 'STOR_%';");
-    await query("DELETE FROM lockers WHERE code LIKE 'STOR_%';");
-    await query("DELETE FROM vaults WHERE code LIKE 'STOR_%';");
     await query(
-      "DELETE FROM store_memberships WHERE store_id IN (SELECT id FROM stores WHERE code LIKE 'STOR_%');",
+      "DELETE FROM compartments WHERE locker_id IN (SELECT id FROM lockers WHERE vault_id IN (SELECT id FROM vaults WHERE store_id IN (SELECT id FROM stores WHERE code IN ('STOR_STORE_A', 'STOR_STORE_B'))));",
     );
-    await query("DELETE FROM stores WHERE code LIKE 'STOR_%';");
-    await query("DELETE FROM organizations WHERE code LIKE 'STOR_%';");
+    await query(
+      "DELETE FROM lockers WHERE vault_id IN (SELECT id FROM vaults WHERE store_id IN (SELECT id FROM stores WHERE code IN ('STOR_STORE_A', 'STOR_STORE_B')));",
+    );
+    await query(
+      "DELETE FROM vaults WHERE store_id IN (SELECT id FROM stores WHERE code IN ('STOR_STORE_A', 'STOR_STORE_B'));",
+    );
+    await query(
+      "DELETE FROM store_memberships WHERE store_id IN (SELECT id FROM stores WHERE code IN ('STOR_STORE_A', 'STOR_STORE_B'));",
+    );
+    await query(
+      "DELETE FROM stores WHERE code IN ('STOR_STORE_A', 'STOR_STORE_B');",
+    );
+    await query("DELETE FROM organizations WHERE code = 'STOR_TEST_ORG';");
     await closePool();
   });
 

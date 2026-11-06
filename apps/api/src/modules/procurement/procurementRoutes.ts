@@ -14,6 +14,12 @@ import {
   getGrnHandler,
   updateGrnHandler,
   closeGrnHandler,
+  createShipmentHandler,
+  listShipmentsHandler,
+  getShipmentHandler,
+  updateShipmentHandler,
+  addShipmentItemHandler,
+  updateShipmentItemHandler,
 } from "./procurementController.js";
 
 export function createProcurementRouter(): Router {
@@ -56,6 +62,30 @@ export function createProcurementRouter(): Router {
     "/grns/:id/close",
     requirePermission("procurement:write"),
     closeGrnHandler,
+  );
+
+  // Inbound Shipments & Line Items Manifest (Entities 20, 21 - FEAT-PROC-03)
+  router.post(
+    "/shipments",
+    requirePermission("procurement:write"),
+    createShipmentHandler,
+  );
+  router.get("/shipments", listShipmentsHandler);
+  router.get("/shipments/:id", getShipmentHandler);
+  router.patch(
+    "/shipments/:id",
+    requirePermission("procurement:write"),
+    updateShipmentHandler,
+  );
+  router.post(
+    "/shipments/:id/items",
+    requirePermission("procurement:write"),
+    addShipmentItemHandler,
+  );
+  router.patch(
+    "/shipments/:id/items/:itemId",
+    requirePermission("procurement:write"),
+    updateShipmentItemHandler,
   );
 
   return router;

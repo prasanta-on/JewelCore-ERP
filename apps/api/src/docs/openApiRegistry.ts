@@ -29,6 +29,10 @@ import {
   createGrnSchema,
   updateGrnSchema,
   closeGrnSchema,
+  createShipmentSchema,
+  updateShipmentSchema,
+  createShipmentItemInputSchema,
+  updateShipmentItemSchema,
 } from "@jewelcore/shared";
 
 extendZodWithOpenApi(z);
@@ -1273,6 +1277,263 @@ registry.registerPath({
     },
     422: {
       description: "GRN is already closed",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+// -------------------------------------------------------------
+// 11. Inbound Shipments & Line Items Endpoints (FEAT-PROC-03)
+// -------------------------------------------------------------
+const CreateShipmentSchema = registry.register(
+  "CreateShipmentInput",
+  createShipmentSchema,
+);
+const UpdateShipmentSchema = registry.register(
+  "UpdateShipmentInput",
+  updateShipmentSchema,
+);
+const CreateShipmentItemSchema = registry.register(
+  "CreateShipmentItemInput",
+  createShipmentItemInputSchema,
+);
+const UpdateShipmentItemSchema = registry.register(
+  "UpdateShipmentItemInput",
+  updateShipmentItemSchema,
+);
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/procurement/shipments",
+  tags: ["Procurement & Inbound Intake"],
+  summary: "Create Inbound Shipment and manifest line items (Entity 20, 21)",
+  security: [{ BearerAuth: [] }],
+  request: {
+    body: { content: { "application/json": { schema: CreateShipmentSchema } } },
+  },
+  responses: {
+    201: { description: "Shipment created successfully" },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description: "Missing procurement:write permission",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    409: {
+      description: "Duplicate shipment number or line number",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description: "Parent GRN closed or referenced SKU not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/procurement/shipments",
+  tags: ["Procurement & Inbound Intake"],
+  summary: "List Inbound Shipments with optional GRN and status filters",
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "goodsReceiptNoteId",
+      in: "query",
+      required: false,
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "status",
+      in: "query",
+      required: false,
+      schema: { type: "string", enum: ["PENDING", "RECEIVED", "RECONCILED"] },
+    },
+  ],
+  responses: {
+    200: { description: "List of shipments" },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/procurement/shipments/{id}",
+  tags: ["Procurement & Inbound Intake"],
+  summary: "Retrieve Shipment with all manifested line items by ID",
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: { description: "Shipment with items details" },
+    404: {
+      description: "Shipment not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/v1/procurement/shipments/{id}",
+  tags: ["Procurement & Inbound Intake"],
+  summary: "Update Inbound Shipment package metadata",
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  request: {
+    body: { content: { "application/json": { schema: UpdateShipmentSchema } } },
+  },
+  responses: {
+    200: { description: "Shipment updated successfully" },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description: "Missing procurement:write permission",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    404: {
+      description: "Shipment not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description: "Parent GRN is closed and locked",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/procurement/shipments/{id}/items",
+  tags: ["Procurement & Inbound Intake"],
+  summary: "Add a manifested line item to an existing shipment",
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  request: {
+    body: {
+      content: { "application/json": { schema: CreateShipmentItemSchema } },
+    },
+  },
+  responses: {
+    201: { description: "Shipment line item added successfully" },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description: "Missing procurement:write permission",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    409: {
+      description: "Duplicate line number in shipment",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description: "Parent GRN is closed or SKU not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/v1/procurement/shipments/{id}/items/{itemId}",
+  tags: ["Procurement & Inbound Intake"],
+  summary:
+    "Update manifested line item (intake counts, metrology weights, reconciliation)",
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "itemId",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  request: {
+    body: {
+      content: { "application/json": { schema: UpdateShipmentItemSchema } },
+    },
+  },
+  responses: {
+    200: { description: "Shipment line item updated successfully" },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description: "Missing procurement:write permission",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    404: {
+      description: "Shipment item not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description: "Parent GRN is closed and locked",
       content: {
         "application/problem+json": { schema: ProblemDocumentSchema },
       },

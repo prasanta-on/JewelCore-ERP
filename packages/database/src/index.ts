@@ -24,3 +24,4 @@ export * from "./repositories/productRepository.js";
 export * from "./repositories/skuRepository.js";
 export * from "./repositories/supplierRepository.js";
 export * from "./repositories/grnRepository.js";
+export * from "./repositories/shipmentRepository.js";
