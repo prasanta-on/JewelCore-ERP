@@ -21,6 +21,7 @@ export * from "./repositories/categoryRepository.js";
 export * from "./repositories/materialRepository.js";
 export * from "./repositories/gemstoneRepository.js";
 export * from "./repositories/productRepository.js";
+export * from "./repositories/skuRepository.js";
 
 
 

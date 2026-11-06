@@ -28,6 +28,13 @@ describe("Storage Hierarchy Repository Integration Tests (INV-05, INV-17)", () =
   beforeAll(async () => {
     await runAllMigrations();
 
+    await query("DELETE FROM compartments WHERE code LIKE 'STOR_%';");
+    await query("DELETE FROM lockers WHERE code LIKE 'STOR_%';");
+    await query("DELETE FROM vaults WHERE code LIKE 'STOR_%';");
+    await query("DELETE FROM store_memberships WHERE store_id IN (SELECT id FROM stores WHERE code LIKE 'STOR_%');");
+    await query("DELETE FROM stores WHERE code LIKE 'STOR_%';");
+    await query("DELETE FROM organizations WHERE code LIKE 'STOR_%';");
+
     const org = await createOrganization({
       code: "STOR_TEST_ORG",
       name: "Storage Test Organization",
@@ -59,6 +66,7 @@ describe("Storage Hierarchy Repository Integration Tests (INV-05, INV-17)", () =
     await query("DELETE FROM compartments WHERE code LIKE 'STOR_%';");
     await query("DELETE FROM lockers WHERE code LIKE 'STOR_%';");
     await query("DELETE FROM vaults WHERE code LIKE 'STOR_%';");
+    await query("DELETE FROM store_memberships WHERE store_id IN (SELECT id FROM stores WHERE code LIKE 'STOR_%');");
     await query("DELETE FROM stores WHERE code LIKE 'STOR_%';");
     await query("DELETE FROM organizations WHERE code LIKE 'STOR_%';");
     await closePool();

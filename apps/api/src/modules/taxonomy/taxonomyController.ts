@@ -6,6 +6,9 @@ import {
   createPuritySchema,
   createGemstoneSchema,
   createProductSchema,
+  createProductSkuSchema,
+  updateProductSkuSchema,
+  createProductGemstoneSpecSchema,
   type GemstoneType,
   NotFoundError,
   BadRequestError,
@@ -31,6 +34,12 @@ import {
   createProduct,
   getProductById,
   listProducts,
+  createProductSku,
+  getProductSkuById,
+  listProductSkus,
+  updateProductSku,
+  createProductGemstoneSpec,
+  getProductSkuWithSpecs,
 } from "@jewelcore/database";
 
 export async function createCategoryHandler(
@@ -533,6 +542,147 @@ export async function getProductHandler(
 
     res.status(200).json({
       data: product,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ==========================================
+// Commercial SKUs & Specs Handlers (FEAT-TAX-05)
+// ==========================================
+
+export async function createSkuHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const orgId = req.body.organizationId ?? req.user?.orgId;
+    if (!orgId) {
+      throw new BadRequestError("Organization context is required", "ERR_MISSING_ORG_CONTEXT");
+    }
+
+    const validated = createProductSkuSchema.parse({
+      ...req.body,
+      organizationId: orgId,
+    });
+
+    const sku = await createProductSku(validated);
+    res.status(201).json({
+      data: sku,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listSkusHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const orgId = req.user?.orgId;
+    if (!orgId) {
+      throw new BadRequestError("Organization context is required", "ERR_MISSING_ORG_CONTEXT");
+    }
+
+    const productId = req.query.productId as string | undefined;
+    const isActive =
+      req.query.isActive !== undefined ? req.query.isActive === "true" : undefined;
+
+    const skus = await listProductSkus({
+      organizationId: orgId,
+      productId,
+      isActive,
+    });
+
+    res.status(200).json({
+      data: skus,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getSkuHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const rawId = req.params.id;
+    const id = Array.isArray(rawId) ? rawId[0] : rawId;
+    if (!id) {
+      throw new BadRequestError("SKU ID is required", "ERR_INVALID_ID");
+    }
+
+    const includeSpecs = req.query.includeSpecs === "true";
+    const sku = includeSpecs
+      ? await getProductSkuWithSpecs(id)
+      : await getProductSkuById(id);
+
+    if (!sku) {
+      throw new NotFoundError("SKU", id);
+    }
+
+    res.status(200).json({
+      data: sku,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateSkuHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const rawId = req.params.id;
+    const id = Array.isArray(rawId) ? rawId[0] : rawId;
+    if (!id) {
+      throw new BadRequestError("SKU ID is required", "ERR_INVALID_ID");
+    }
+
+    const validated = updateProductSkuSchema.parse(req.body);
+    const updated = await updateProductSku(id, validated);
+
+    res.status(200).json({
+      data: updated,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function createGemstoneSpecHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const rawSkuId = req.params.skuId ?? req.body.productSkuId;
+    const skuId = Array.isArray(rawSkuId) ? rawSkuId[0] : rawSkuId;
+    if (!skuId) {
+      throw new BadRequestError("SKU ID is required", "ERR_INVALID_ID");
+    }
+
+    const validated = createProductGemstoneSpecSchema.parse({
+      ...req.body,
+      productSkuId: skuId,
+    });
+
+    const spec = await createProductGemstoneSpec(validated);
+    res.status(201).json({
+      data: spec,
       timestamp: new Date().toISOString(),
     });
   } catch (err) {

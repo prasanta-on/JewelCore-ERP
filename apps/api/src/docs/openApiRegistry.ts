@@ -21,6 +21,9 @@ import {
   createPuritySchema,
   createGemstoneSchema,
   createProductSchema,
+  createProductSkuSchema,
+  updateProductSkuSchema,
+  createProductGemstoneSpecSchema,
 } from "@jewelcore/shared";
 
 extendZodWithOpenApi(z);
@@ -504,6 +507,130 @@ registry.registerPath({
   responses: {
     200: { description: "Product style details" },
     404: { description: "Product not found", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+  },
+});
+
+// -------------------------------------------------------------
+// 8. Commercial SKUs & Gemstone Specs Endpoints (FEAT-TAX-05)
+// -------------------------------------------------------------
+const CreateSkuSchema = registry.register("CreateProductSkuInput", createProductSkuSchema);
+const UpdateSkuSchema = registry.register("UpdateProductSkuInput", updateProductSkuSchema);
+const CreateGemstoneSpecSchema = registry.register(
+  "CreateProductGemstoneSpecInput",
+  createProductGemstoneSpecSchema,
+);
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/taxonomy/skus",
+  tags: ["Taxonomy & Master Data"],
+  summary: "Create commercial SKU variant linked to product style (Entity 16)",
+  security: [{ BearerAuth: [] }],
+  request: { body: { content: { "application/json": { schema: CreateSkuSchema } } } },
+  responses: {
+    201: { description: "Commercial SKU created" },
+    400: { description: "Validation error", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+    403: { description: "Missing taxonomy:write permission", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+    409: { description: "Duplicate SKU code", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+    422: { description: "Unprocessable entity (invalid weights or foreign key)", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/taxonomy/skus",
+  tags: ["Taxonomy & Master Data"],
+  summary: "List commercial SKUs with optional productId and active filters",
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "productId",
+      in: "query",
+      required: false,
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "isActive",
+      in: "query",
+      required: false,
+      schema: { type: "boolean" },
+    },
+  ],
+  responses: {
+    200: { description: "List of commercial SKUs" },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/taxonomy/skus/{id}",
+  tags: ["Taxonomy & Master Data"],
+  summary: "Retrieve commercial SKU by primary key ID (optionally including gemstone specs)",
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "includeSpecs",
+      in: "query",
+      required: false,
+      schema: { type: "boolean" },
+    },
+  ],
+  responses: {
+    200: { description: "Commercial SKU details" },
+    404: { description: "SKU not found", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/v1/taxonomy/skus/{id}",
+  tags: ["Taxonomy & Master Data"],
+  summary: "Update commercial SKU (enforces INV-06 tracking type immutability)",
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  request: { body: { content: { "application/json": { schema: UpdateSkuSchema } } } },
+  responses: {
+    200: { description: "SKU updated successfully" },
+    403: { description: "Missing taxonomy:write permission", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+    404: { description: "SKU not found", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+    422: { description: "Tracking type is immutable (INV-06) or invalid weights", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/taxonomy/skus/{skuId}/gemstone-specs",
+  tags: ["Taxonomy & Master Data"],
+  summary: "Add gemstone specification to SKU (Entity 17)",
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "skuId",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  request: { body: { content: { "application/json": { schema: CreateGemstoneSpecSchema } } } },
+  responses: {
+    201: { description: "Gemstone specification registered" },
+    400: { description: "Validation error", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+    403: { description: "Missing taxonomy:write permission", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+    409: { description: "Duplicate gemstone spec shape", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
+    422: { description: "SKU or gemstone not found", content: { "application/problem+json": { schema: ProblemDocumentSchema } } },
   },
 });
 

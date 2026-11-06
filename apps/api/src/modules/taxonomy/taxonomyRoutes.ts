@@ -20,6 +20,11 @@ import {
   createProductHandler,
   listProductsHandler,
   getProductHandler,
+  createSkuHandler,
+  listSkusHandler,
+  getSkuHandler,
+  updateSkuHandler,
+  createGemstoneSpecHandler,
 } from "./taxonomyController.js";
 
 export function createTaxonomyRouter(): Router {
@@ -61,6 +66,13 @@ export function createTaxonomyRouter(): Router {
   router.post("/products", requirePermission("taxonomy:write"), createProductHandler);
   router.get("/products", listProductsHandler);
   router.get("/products/:id", getProductHandler);
+
+  // Commercial SKUs & Gemstone Specs (Entities 16 & 17 - FEAT-TAX-05)
+  router.post("/skus", requirePermission("taxonomy:write"), createSkuHandler);
+  router.get("/skus", listSkusHandler);
+  router.get("/skus/:id", getSkuHandler);
+  router.patch("/skus/:id", requirePermission("taxonomy:write"), updateSkuHandler);
+  router.post("/skus/:skuId/gemstone-specs", requirePermission("taxonomy:write"), createGemstoneSpecHandler);
 
   return router;
 }
