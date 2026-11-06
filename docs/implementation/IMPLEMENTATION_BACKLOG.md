@@ -31,8 +31,8 @@ The Implementation Backlog contains **35 vertical slice features** covering 100%
 | Priority Distribution            | P0 Blocker: 18 Features (101 pts) | P1 Critical: 14 Features (60 pts) | P2: 3 Features (13 pts) |
 | Directly Gate-Blocked Features   | 9 Features (49 pts) blocked by BIZ-Q01/Q02/Q03/DEC-05          |
 | Predecessor-Blocked Features     | 22 Features (109 pts) blocked by upstream feature completion   |
-| Completed Features               | 17 Features (81 pts) verified and committed (Sprint 0, Sprint 1, Sprint 2, FEAT-PROC-01..04) |
-| READY_FOR_DEV Features           | 2 Features (10 pts) unblocked, immediately executable (FEAT-GOV-03, FEAT-QC-01) |
+| Completed Features               | 18 Features (86 pts) verified and committed (Sprint 0, Sprint 1, Sprint 2, Sprint 3 Complete) |
+| READY_FOR_DEV Features           | 1 Feature (5 pts) unblocked, immediately executable (FEAT-QC-01) |
 | PREP_READY Features              | 1 Feature (5 pts) architectural preparation unblocked          |
 | Target Delivery Sprints          | Sprint 0 through Sprint 6 (7 Two-Week Sprints = 14 Weeks)      |
 +---------------------------------------------------------------------------------------------------+
@@ -63,7 +63,7 @@ The Implementation Backlog contains **35 vertical slice features** covering 100%
 | **`FEAT-PROC-02`**  | Goods Receipt Notes (GRN) Lifecycle      | Procurement | `goods_receipt_notes` (19)                                             | **P1**   | UNBLOCKED                                                                | `FEAT-PROC-01`                          |    **5**     | `COMPLETED`     |   Sprint 3    |
 | **`FEAT-PROC-03`**  | Inbound Shipments & Line Items           | Procurement | `shipments` (20), `shipment_items` (21)                                | **P0**   | Resolved (`DEC-05` Approved)                                             | `FEAT-PROC-02`, `TAX-05`                |    **8**     | `COMPLETED`     |   Sprint 3    |
 | **`FEAT-PROC-04`**  | Receiving Staff Assignment & Handoff     | Procurement | `staff_assignments` (22)                                               | **P1**   | UNBLOCKED                                                                | `FEAT-PROC-03`, `IAM-04`                |    **3**     | `COMPLETED`     |   Sprint 3    |
-| **`FEAT-GOV-03`**   | Polymorphic Document & File Storage      | Governance  | `file_objects` (41), `file_associations` (42)                          | **P2**   | UNBLOCKED                                                                | `FEAT-IAM-01`                           |    **5**     | `READY_FOR_DEV` |   Sprint 3    |
+| **`FEAT-GOV-03`**   | Polymorphic Document & File Storage      | Governance  | `file_objects` (41), `file_associations` (42)                          | **P2**   | UNBLOCKED                                                                | `FEAT-IAM-01`                           |    **5**     | `COMPLETED`     |   Sprint 3    |
 | **`FEAT-QC-01`**    | Quality Inspection Sessions              | QC          | `quality_checks` (23)                                                  | **P1**   | UNBLOCKED                                                                | `FEAT-PROC-04`                          |    **5**     | `READY_FOR_DEV` |   Sprint 4    |
 | **`FEAT-QC-02`**    | Analytical Balance Metrology             | QC          | `weight_measurements` (25)                                             | **P0**   | Blocked by `DEC-05`                                                      | `FEAT-QC-01`                            |    **5**     | `BLOCKED`       |   Sprint 4    |
 | **`FEAT-QC-03`**    | Gemstone Parcel Grading                  | QC          | `item_gemstones` (26)                                                  | **P1**   | Blocked by `DEC-05`                                                      | `FEAT-QC-01`, `TAX-05`                  |    **5**     | `BLOCKED`       |   Sprint 4    |

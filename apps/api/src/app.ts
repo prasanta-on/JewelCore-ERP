@@ -8,6 +8,7 @@ import { createIamRouter } from "./modules/iam/iamRoutes.js";
 import { createStorageRouter } from "./modules/storage/storageRoutes.js";
 import { createTaxonomyRouter } from "./modules/taxonomy/taxonomyRoutes.js";
 import { createProcurementRouter } from "./modules/procurement/procurementRoutes.js";
+import { createGovernanceRouter } from "./modules/governance/governanceRoutes.js";
 import { createDocsRouter } from "./docs/docsRoutes.js";
 
 export function createApp(configureRoutes?: (app: Express) => void): Express {
@@ -21,7 +22,7 @@ export function createApp(configureRoutes?: (app: Express) => void): Express {
 
   // 3. Security & Body Parsing Middleware
   app.use(cors());
-  app.use(express.json());
+  app.use(express.json({ limit: "50mb" }));
 
   // 4. Base Health Check
   app.get("/health", (_req: Request, res: Response) => {
@@ -57,7 +58,10 @@ export function createApp(configureRoutes?: (app: Express) => void): Express {
   // 10. Inbound Procurement & Vendor Management Module (FEAT-PROC-01)
   app.use("/api/v1/procurement", createProcurementRouter());
 
-  // 11. Interactive OpenAPI / Swagger Documentation
+  // 11. Polymorphic Document & Object Storage Module (FEAT-GOV-03)
+  app.use("/api/v1/files", createGovernanceRouter());
+
+  // 12. Interactive OpenAPI / Swagger Documentation
   app.use(createDocsRouter());
 
   // Custom route injection (useful for test harnesses and integration mocks)

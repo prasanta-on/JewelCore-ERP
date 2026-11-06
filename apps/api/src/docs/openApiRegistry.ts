@@ -34,6 +34,8 @@ import {
   createShipmentItemInputSchema,
   updateShipmentItemSchema,
   createStaffAssignmentSchema,
+  uploadFileSchema,
+  createFileAssociationSchema,
 } from "@jewelcore/shared";
 
 extendZodWithOpenApi(z);
@@ -1683,6 +1685,141 @@ registry.registerPath({
     },
     422: {
       description: "Parent GRN is closed and locked",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/files",
+  summary: "Upload Binary Document / Evidence Attachment (FEAT-GOV-03)",
+  tags: ["Files & Governance"],
+  security: [{ BearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: uploadFileSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description:
+        "File uploaded successfully and registered with SHA-256 digest",
+    },
+    400: {
+      description:
+        "Invalid payload or unsupported MIME type (ERR_UNSUPPORTED_MIME_TYPE)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description:
+        "Forbidden - Insufficient permissions (ERR_INSUFFICIENT_PERMISSIONS)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/files/{id}",
+  summary: "Get File Object Metadata & Presigned URL (FEAT-GOV-03)",
+  tags: ["Files & Governance"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: {
+      description: "File metadata record returned with presigned URL",
+    },
+    404: {
+      description: "File not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/files/{id}/content",
+  summary:
+    "Download / Stream Binary File Content with Checksum Verification (FEAT-GOV-03)",
+  tags: ["Files & Governance"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: {
+      description:
+        "Binary file stream with X-Sha256-Checksum and X-Checksum-Verified headers",
+    },
+    404: {
+      description: "File not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/files/{id}/associations",
+  summary: "Create Polymorphic File Association (FEAT-GOV-03)",
+  tags: ["Files & Governance"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: createFileAssociationSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "File associated with entity successfully",
+    },
+    409: {
+      description: "File already associated with target entity",
       content: {
         "application/problem+json": { schema: ProblemDocumentSchema },
       },
