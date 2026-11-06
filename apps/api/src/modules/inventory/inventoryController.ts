@@ -2,6 +2,9 @@ import type { Request, Response, NextFunction } from "express";
 import {
   birthInventoryItemSchema,
   listInventoryItemsQuerySchema,
+  createStockBalanceSchema,
+  updateStockBalanceSchema,
+  listStockBalancesQuerySchema,
   BadRequestError,
   NotFoundError,
   ForbiddenError,
@@ -12,6 +15,10 @@ import {
   listInventoryItems,
   getQualityCheckItemById,
   getQualityCheckById,
+  upsertStockBalance,
+  getStockBalanceById,
+  updateStockBalance,
+  listStockBalances,
 } from "@jewelcore/database";
 
 /**
@@ -135,6 +142,160 @@ export async function listInventoryItemsHandler(
 
     const items = await listInventoryItems(query);
     res.status(200).json(items);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Creates or updates a bulk quantity-batch stock balance (Entity 29 - FEAT-INV-02 / BIZ-Q02).
+ */
+export async function upsertStockBalanceHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const input = createStockBalanceSchema.parse(req.body);
+
+    const activeStoreId =
+      req.storeContext?.storeId ??
+      (typeof req.headers["x-store-id"] === "string"
+        ? req.headers["x-store-id"]
+        : undefined);
+
+    if (activeStoreId && input.storeId && activeStoreId !== input.storeId) {
+      throw new ForbiddenError(
+        `Cross-store access denied: payload store '${input.storeId}' does not match active store context '${activeStoreId}'`,
+        "ERR_STORE_ACCESS_DENIED",
+      );
+    }
+
+    if (!input.storeId && activeStoreId) {
+      input.storeId = activeStoreId;
+    }
+
+    const balance = await upsertStockBalance(input, {
+      userId: req.user!.userId,
+    });
+
+    res.status(200).json(balance);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Retrieves a stock balance by ID.
+ */
+export async function getStockBalanceHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) {
+      throw new BadRequestError("Stock balance ID parameter is required");
+    }
+
+    const balance = await getStockBalanceById(id);
+    if (!balance) {
+      throw new NotFoundError(
+        `Stock balance with ID '${id}' not found`,
+        "ERR_STOCK_BALANCE_NOT_FOUND",
+      );
+    }
+
+    const activeStoreId =
+      req.storeContext?.storeId ??
+      (typeof req.headers["x-store-id"] === "string"
+        ? req.headers["x-store-id"]
+        : undefined);
+
+    if (activeStoreId && activeStoreId !== balance.storeId) {
+      throw new ForbiddenError(
+        "Access to the requested store context is denied",
+        "ERR_STORE_ACCESS_DENIED",
+      );
+    }
+
+    res.status(200).json(balance);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Updates an existing stock balance by ID with optional OCC check.
+ */
+export async function updateStockBalanceHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) {
+      throw new BadRequestError("Stock balance ID parameter is required");
+    }
+
+    const balance = await getStockBalanceById(id);
+    if (!balance) {
+      throw new NotFoundError(
+        `Stock balance with ID '${id}' not found`,
+        "ERR_STOCK_BALANCE_NOT_FOUND",
+      );
+    }
+
+    const activeStoreId =
+      req.storeContext?.storeId ??
+      (typeof req.headers["x-store-id"] === "string"
+        ? req.headers["x-store-id"]
+        : undefined);
+
+    if (activeStoreId && activeStoreId !== balance.storeId) {
+      throw new ForbiddenError(
+        "Access to the requested store context is denied",
+        "ERR_STORE_ACCESS_DENIED",
+      );
+    }
+
+    const input = updateStockBalanceSchema.parse(req.body);
+
+    const updated = await updateStockBalance(id, input, {
+      userId: req.user!.userId,
+    });
+
+    res.status(200).json(updated);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Lists stock balances with query filtering.
+ */
+export async function listStockBalancesHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const query = listStockBalancesQuerySchema.parse(req.query);
+
+    const activeStoreId =
+      req.storeContext?.storeId ??
+      (typeof req.headers["x-store-id"] === "string"
+        ? req.headers["x-store-id"]
+        : undefined);
+
+    if (activeStoreId && !query.storeId) {
+      query.storeId = activeStoreId;
+    }
+
+    const balances = await listStockBalances(query);
+    res.status(200).json(balances);
   } catch (err) {
     next(err);
   }

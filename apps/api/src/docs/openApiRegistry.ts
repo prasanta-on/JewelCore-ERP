@@ -45,6 +45,8 @@ import {
   evaluateToleranceSchema,
   createQualityDecisionSchema,
   birthInventoryItemSchema,
+  createStockBalanceSchema,
+  updateStockBalanceSchema,
 } from "@jewelcore/shared";
 
 extendZodWithOpenApi(z);
@@ -2596,6 +2598,200 @@ registry.registerPath({
     },
     404: {
       description: "Inventory item not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+// Bulk Quantity-Batch Stock Balances Endpoints (FEAT-INV-02 / BIZ-Q02)
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/inventory/balances",
+  summary: "Create or Upsert Stock Balance (FEAT-INV-02)",
+  description:
+    "Creates or updates bulk stock balance per (store_id, product_sku_id, compartment_id) for non-serialized components. Enforces QUANTITY_BATCH SKU tracking type (INV-06) and non-negative quantity physics.",
+  tags: ["Inventory"],
+  security: [{ BearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: createStockBalanceSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Stock balance created or updated successfully",
+    },
+    400: {
+      description: "Malformed payload or negative quantities",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description:
+        "Insufficient permissions (requires inventory:write) or store context violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description:
+        "Validation error: invalid tracking type (INV-06) or compartment store mismatch (INV-11)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/inventory/balances",
+  summary: "List Stock Balances (FEAT-INV-02)",
+  description:
+    "Lists bulk stock balance records matching store, SKU, and compartment filters.",
+  tags: ["Inventory"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "storeId",
+      in: "query",
+      required: false,
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "productSkuId",
+      in: "query",
+      required: false,
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "compartmentId",
+      in: "query",
+      required: false,
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "limit",
+      in: "query",
+      required: false,
+      schema: { type: "integer", default: 50 },
+    },
+    {
+      name: "offset",
+      in: "query",
+      required: false,
+      schema: { type: "integer", default: 0 },
+    },
+  ],
+  responses: {
+    200: {
+      description: "List of stock balances retrieved successfully",
+    },
+    403: {
+      description: "Insufficient permissions or store context violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/inventory/balances/{id}",
+  summary: "Get Stock Balance by ID (FEAT-INV-02)",
+  description: "Retrieves bulk stock balance record by primary UUID.",
+  tags: ["Inventory"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: {
+      description: "Stock balance retrieved successfully",
+    },
+    403: {
+      description: "Insufficient permissions or store context violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    404: {
+      description: "Stock balance not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/v1/inventory/balances/{id}",
+  summary: "Update Stock Balance by ID (FEAT-INV-02)",
+  description:
+    "Updates quantities, weight, or cost for a stock balance with OCC version check.",
+  tags: ["Inventory"],
+  security: [{ BearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: updateStockBalanceSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Stock balance updated successfully",
+    },
+    400: {
+      description: "Invalid input or negative quantities",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    403: {
+      description: "Insufficient permissions or store context violation",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    404: {
+      description: "Stock balance not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    409: {
+      description: "OCC version mismatch",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description: "Insufficient available stock (onHand < reserved)",
       content: {
         "application/problem+json": { schema: ProblemDocumentSchema },
       },

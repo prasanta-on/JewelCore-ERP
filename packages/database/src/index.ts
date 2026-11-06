@@ -29,3 +29,4 @@ export * from "./repositories/staffAssignmentRepository.js";
 export * from "./repositories/fileRepository.js";
 export * from "./repositories/qcRepository.js";
 export * from "./repositories/inventoryRepository.js";
+export * from "./repositories/stockBalanceRepository.js";

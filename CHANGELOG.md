@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Bulk Quantity-Batch Stock Balances (`FEAT-INV-02` / `BIZ-Q02`, Entity 29)**:
+  - Created `inventory_stock_balances` table (Entity 29) to manage non-serialized components (earring backs, findings, loose pearls, packaging) per `(store_id, product_sku_id, compartment_id)`.
+  - Enforced `INV-06` tracking type gate restricting stock balances strictly to `QUANTITY_BATCH` SKUs (`ERR_INVALID_TRACKING_TYPE`, 422).
+  - Enforced distinct non-negative check constraints: `quantity_on_hand >= 0`, `quantity_reserved >= 0`, and `quantity_on_hand >= quantity_reserved` (`chk_stock_balances_qty_available`).
+  - Implemented PostgreSQL generated stored column: `quantity_available INTEGER GENERATED ALWAYS AS (quantity_on_hand - quantity_reserved) STORED`.
+  - Implemented Optimistic Concurrency Control (OCC) version checking on balance updates (`ERR_OCC_VERSION_MISMATCH`, 409).
+  - Seeded permission `inventory:write` and mapped to `SYSTEM_ADMIN`, `STORE_MANAGER`, and `INVENTORY_CONTROLLER`.
+  - Implemented REST API endpoints:
+    - `POST /api/v1/inventory/balances` (`inventory:write`)
+    - `GET /api/v1/inventory/balances` (`inventory:view`)
+    - `GET /api/v1/inventory/balances/:id` (`inventory:view`)
+    - `PATCH /api/v1/inventory/balances/:id` (`inventory:write`)
+  - Integrated OpenAPI 3.1 documentation for balance endpoints and schemas.
+  - Configured `fileParallelism: false` in `vitest.config.ts` ensuring deterministic, race-condition-free database integration test execution.
+  - Added comprehensive repository and API integration tests (24 test cases passing).
+
 - **Serialized Piece Birth & Lineage Integrity (`FEAT-INV-01` / `INV-14`, Entity 28)**:
   - Created `inventory_items` table (Entity 28) establishing physical piece identity and immutable lineage linking back to approved QC inspections.
   - Enforced `INV-14` birth certificate immutability via database trigger `trg_inventory_items_birth_lineage`, prohibiting mutations to `quality_check_item_id`.
