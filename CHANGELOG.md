@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0] - 2026-11-07
+
+### Added
+
+- **Goods Receipt Notes (GRN) Lifecycle (`FEAT-PROC-02`)**:
+  - Implemented `goods_receipt_notes` (Entity 19) lifecycle engine with status states `DRAFT` and `CLOSED`.
+  - Enforced `INV-06` immutability guarantee: closed GRNs lock inbound manifests and reject subsequent mutations with `422 Unprocessable Entity` (`ERR_GRN_IMMUTABLE`).
+- **Inbound Shipments & Manifest Line Items (`FEAT-PROC-03`)**:
+  - Implemented `shipments` (Entity 20) with carrier tracking codes, gross package weights, and unique numbers per organization.
+  - Implemented `shipment_items` (Entity 21) Bill of Lading manifests strictly conforming to **`DEC-05` metrological precision standard**:
+    - Declared Gross Weight: `NUMERIC(10, 4)` grams.
+    - Declared Net Weight: `NUMERIC(10, 4)` grams.
+    - Measured Gross Intake Weight: `NUMERIC(10, 4)` grams.
+  - Implemented Optimistic Concurrency Control (OCC) version tracking (`version` counter) on line item revisions.
+- **Receiving Staff Assignment & Handoff (`FEAT-PROC-04`)**:
+  - Implemented `staff_assignments` (Entity 22) operational custody delegation linking receiving technicians, inspectors, and approvers.
+  - Enforced **`INV-19` Contextual Parent Consistency**: Staff assignments scoped to a shipment must verify that the shipment belongs to the referenced GRN (`ERR_ASSIGNMENT_GRN_MISMATCH`).
+- **Polymorphic Document & Object Storage (`FEAT-GOV-03`)**:
+  - Implemented `file_objects` (Entity 41) metadata registry with SHA-256 cryptographic digests, byte length extraction, and S3-compatible key paths.
+  - Implemented `file_associations` (Entity 42) polymorphic linkage connecting attachments (supplier invoices, assay certificates, intake defect photos) to any domain entity with primary document designation (`is_primary = TRUE`).
+  - Implemented `ObjectStorageProvider` abstraction with in-memory provider and HMAC-signed presigned retrieval URLs.
+  - Added cryptographic verification endpoint (`/api/v1/files/:id/verify`) guaranteeing zero checksum drift.
+  - Enforced strict MIME type whitelisting, rejecting disallowed executables with `400 Bad Request` (`ERR_UNSUPPORTED_MIME_TYPE`).
+- **CI/CD Concurrency & Database Advisory Locking**:
+  - Integrated PostgreSQL session-level advisory locks (`pg_advisory_lock`) in migration runner preventing catalog DDL race conditions during parallel Vitest execution in GitHub Actions CI.
+  - Added Vitest `globalSetup` to execute schema migrations deterministically prior to test worker initialization.
+
+---
+
 ## [0.2.0] - 2026-11-06
 
 ### Added
