@@ -8,6 +8,12 @@ import {
   getSubcategoryHandler,
   listSubcategoriesHandler,
   getTaxonomyTreeHandler,
+  createMaterialHandler,
+  listMaterialsHandler,
+  getMaterialHandler,
+  createPurityHandler,
+  listPuritiesHandler,
+  getPurityHandler,
 } from "./taxonomyController.js";
 
 export function createTaxonomyRouter(): Router {
@@ -28,6 +34,17 @@ export function createTaxonomyRouter(): Router {
   // Subcategories (Entity 11)
   router.post("/subcategories", requirePermission("taxonomy:write"), createSubcategoryHandler);
   router.get("/subcategories/:id", getSubcategoryHandler);
+
+  // Materials (Entity 12 - FEAT-TAX-02)
+  router.post("/materials", requirePermission("taxonomy:write"), createMaterialHandler);
+  router.get("/materials", listMaterialsHandler);
+  router.get("/materials/:id", getMaterialHandler);
+
+  // Purities (Entity 13 - FEAT-TAX-02 / DEC-05)
+  router.post("/materials/:materialId/purities", requirePermission("taxonomy:write"), createPurityHandler);
+  router.post("/purities", requirePermission("taxonomy:write"), createPurityHandler);
+  router.get("/purities", listPuritiesHandler);
+  router.get("/purities/:id", getPurityHandler);
 
   return router;
 }

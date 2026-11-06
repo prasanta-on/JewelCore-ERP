@@ -6,6 +6,7 @@ import { migration00003CreateIamRbac } from "./00003_create_iam_rbac.js";
 import { migration00004CreateIamMemberships } from "./00004_create_iam_memberships.js";
 import { migration00005CreateStorageHierarchy } from "./00005_create_storage_hierarchy.js";
 import { migration00006CreateTaxonomyCategories } from "./00006_create_taxonomy_categories.js";
+import { migration00007CreateTaxonomyMaterialsAndPurities } from "./00007_create_taxonomy_materials_and_purities.js";
 
 export const allMigrations: MigrationDefinition[] = [
   migration00001CreateIamOrganizationsAndStores,
@@ -14,6 +15,7 @@ export const allMigrations: MigrationDefinition[] = [
   migration00004CreateIamMemberships,
   migration00005CreateStorageHierarchy,
   migration00006CreateTaxonomyCategories,
+  migration00007CreateTaxonomyMaterialsAndPurities,
 ];
 
 /**
@@ -29,5 +31,6 @@ export * from "./00003_create_iam_rbac.js";
 export * from "./00004_create_iam_memberships.js";
 export * from "./00005_create_storage_hierarchy.js";
 export * from "./00006_create_taxonomy_categories.js";
+export * from "./00007_create_taxonomy_materials_and_purities.js";
 
 

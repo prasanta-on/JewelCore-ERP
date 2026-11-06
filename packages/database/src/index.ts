@@ -18,6 +18,7 @@ export * from "./repositories/roleRepository.js";
 export * from "./repositories/membershipRepository.js";
 export * from "./repositories/storageRepository.js";
 export * from "./repositories/categoryRepository.js";
+export * from "./repositories/materialRepository.js";
 
 
 

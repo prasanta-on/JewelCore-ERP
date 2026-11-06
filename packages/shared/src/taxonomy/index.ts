@@ -63,3 +63,5 @@ export const createSubcategorySchema = z.object({
 });
 
 export type CreateSubcategoryInput = z.infer<typeof createSubcategorySchema>;
+
+export * from "./materialSchemas.js";
