@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **EPC Tag Master Registry & Lifecycle (`FEAT-RFID-01`, Entity 35)**:
+  - Created `rfid_tags` table (Entity 35) providing global hardware transponder tracking with unique EPC constraint per tenant (`(organization_id, epc) UNIQUE`).
+  - Supported multi-band transponder frequencies (`UHF_860_960_MHZ`, `HF_13_56_MHZ`, `NFC`) and TID tracking with indexing.
+  - Implemented tag lifecycle state machine (`UNENCODED` -> `ACTIVE` -> `RETIRED` / `DAMAGED`), strictly preventing transitions out of terminal statuses (`RETIRED`, `DAMAGED`) and rejecting no-op updates with descriptive error codes.
+  - Automatically records lifecycle timestamps (`encoded_at` when activated, `retired_at` when retired/damaged).
+  - Seeded fine-grained permissions: `rfid:write` (granted to `SYSTEM_ADMIN`, `STORE_MANAGER`, `INVENTORY_CONTROLLER`) and `rfid:view` (granted to `SYSTEM_ADMIN`, `STORE_MANAGER`, `INVENTORY_CONTROLLER`, `SALES_ASSOCIATE`).
+  - Implemented REST API endpoints mounted under `/api/v1/rfid`:
+    - `POST /api/v1/rfid/tags` (`rfid:write`) - Register new transponder tag.
+    - `GET /api/v1/rfid/tags` (`rfid:view`) - List tags with status, EPC substring, and pagination filters.
+    - `GET /api/v1/rfid/tags/:id` (`rfid:view`) - Retrieve tag by primary UUID or EPC string with multi-tenant scoping.
+    - `PATCH /api/v1/rfid/tags/:id/status` (`rfid:write`) - Update lifecycle status with state machine validation.
+  - Added full OpenAPI 3.0 path documentation and schemas.
+  - Added comprehensive repository and API integration tests (25 test cases passing).
+
+
 ## [0.5.0] - 2026-11-07
 
 ### Added

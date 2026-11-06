@@ -11,6 +11,7 @@ import { createProcurementRouter } from "./modules/procurement/procurementRoutes
 import { createGovernanceRouter } from "./modules/governance/governanceRoutes.js";
 import { createQcRouter } from "./modules/qc/qcRoutes.js";
 import { createInventoryRouter } from "./modules/inventory/inventoryRoutes.js";
+import { createRfidRouter } from "./modules/rfid/rfidRoutes.js";
 import { createDocsRouter } from "./docs/docsRoutes.js";
 
 export function createApp(configureRoutes?: (app: Express) => void): Express {
@@ -69,7 +70,10 @@ export function createApp(configureRoutes?: (app: Express) => void): Express {
   // 13. Physical Inventory & Custody Ledger Module (FEAT-INV-01)
   app.use("/api/v1/inventory", createInventoryRouter());
 
-  // 14. Interactive OpenAPI / Swagger Documentation
+  // 14. RFID Infrastructure & Tracking Module (FEAT-RFID-01)
+  app.use("/api/v1/rfid", createRfidRouter());
+
+  // 15. Interactive OpenAPI / Swagger Documentation
   app.use(createDocsRouter());
 
   // Custom route injection (useful for test harnesses and integration mocks)

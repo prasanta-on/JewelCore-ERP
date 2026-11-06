@@ -49,6 +49,8 @@ import {
   updateStockBalanceSchema,
   createInventoryMovementSchema,
   updateInventoryItemStateSchema,
+  createRfidTagSchema,
+  updateRfidTagStatusSchema,
 } from "@jewelcore/shared";
 
 extendZodWithOpenApi(z);
@@ -3115,6 +3117,156 @@ registry.registerPath({
     },
     403: {
       description: "Insufficient permissions (requires inventory:view)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+// -------------------------------------------------------------
+// 12. RFID Infrastructure & Tracking Module (FEAT-RFID-01)
+// -------------------------------------------------------------
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/rfid/tags",
+  summary: "Register new RFID hardware transponder tag (FEAT-RFID-01)",
+  tags: ["RFID"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: createRfidTagSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "RFID tag registered successfully",
+    },
+    400: {
+      description: "Validation error or invalid input format",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    409: {
+      description:
+        "Duplicate EPC identifier within organization (ERR_DUPLICATE_EPC)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/rfid/tags",
+  summary: "List RFID tags with query filters and pagination",
+  tags: ["RFID"],
+  security: [{ bearerAuth: [] }],
+  parameters: [
+    {
+      name: "status",
+      in: "query",
+      required: false,
+      schema: {
+        type: "string",
+        enum: ["UNENCODED", "ACTIVE", "RETIRED", "DAMAGED"],
+      },
+    },
+    {
+      name: "epc",
+      in: "query",
+      required: false,
+      schema: { type: "string" },
+    },
+    {
+      name: "limit",
+      in: "query",
+      required: false,
+      schema: { type: "integer", minimum: 1, maximum: 100, default: 50 },
+    },
+    {
+      name: "offset",
+      in: "query",
+      required: false,
+      schema: { type: "integer", minimum: 0, default: 0 },
+    },
+  ],
+  responses: {
+    200: {
+      description: "List of matching RFID tag records",
+    },
+    403: {
+      description: "Insufficient permissions (requires rfid:view)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/rfid/tags/{id}",
+  summary: "Retrieve RFID tag by ID or EPC identifier",
+  tags: ["RFID"],
+  security: [{ bearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string" },
+    },
+  ],
+  responses: {
+    200: {
+      description: "RFID tag details",
+    },
+    404: {
+      description: "RFID tag not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/v1/rfid/tags/{id}/status",
+  summary: "Update RFID tag lifecycle status",
+  tags: ["RFID"],
+  security: [{ bearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: updateRfidTagStatusSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Updated RFID tag record",
+    },
+    422: {
+      description: "Invalid state transition or terminal status",
       content: {
         "application/problem+json": { schema: ProblemDocumentSchema },
       },

@@ -31,8 +31,8 @@ The Implementation Backlog contains **35 vertical slice features** covering 100%
 | Priority Distribution            | P0 Blocker: 18 Features (101 pts) | P1 Critical: 14 Features (60 pts) | P2: 3 Features (13 pts) |
 | Directly Gate-Blocked Features   | 9 Features (49 pts) blocked by BIZ-Q01/Q02/Q03/DEC-05          |
 | Predecessor-Blocked Features     | 22 Features (109 pts) blocked by upstream feature completion   |
-| Completed Features               | 28 Features (145 pts) verified and committed (Sprint 0, Sprint 1, Sprint 2, Sprint 3, Sprint 4, and Sprint 5 Complete — 100% of Sprints 0-5) |
-| READY_FOR_DEV Features           | 1 Feature (3 pts) unblocked, immediately executable (FEAT-RFID-01) |
+| Completed Features               | 29 Features (148 pts) verified and committed (Sprint 0, Sprint 1, Sprint 2, Sprint 3, Sprint 4, Sprint 5 Complete; Sprint 6 in progress — 85.1% of Phase 0 MVP) |
+| READY_FOR_DEV Features           | 1 Feature (5 pts) unblocked, immediately executable (FEAT-RFID-02) |
 | PREP_READY Features              | 1 Feature (5 pts) architectural preparation unblocked          |
 | Target Delivery Sprints          | Sprint 0 through Sprint 6 (7 Two-Week Sprints = 14 Weeks)      |
 +---------------------------------------------------------------------------------------------------+
@@ -74,8 +74,8 @@ The Implementation Backlog contains **35 vertical slice features** covering 100%
 | **`FEAT-INV-02`**   | Bulk Stock Balances & Depletion          | Inventory   | `inventory_stock_balances` (29)                                        | **P1**   | Resolved (`BIZ-Q02` Option 3 Hybrid)                                     | `FEAT-STOR-01`, `TAX-05`                |    **5**     | `COMPLETED`     |   Sprint 5    |
 | **`FEAT-INV-03`**   | Unified Custody Movement Ledger          | Inventory   | `inventory_movements` (30)                                             | **P0**   | UNBLOCKED                                                                | `FEAT-INV-01`, `FEAT-INV-02`, `STOR-01` |    **8**     | `COMPLETED`     |   Sprint 5    |
 | **`FEAT-INV-04`**   | State History & OCC Concurrency          | Inventory   | `inventory_status_history` (31)                                        | **P1**   | UNBLOCKED                                                                | `FEAT-INV-03`                           |    **5**     | `COMPLETED`     |   Sprint 5    |
-| **`FEAT-RFID-01`**  | EPC Tag Master Registry & Lifecycle      | RFID        | `rfid_tags` (35)                                                       | **P1**   | UNBLOCKED                                                                | `FEAT-IAM-01`                           |    **3**     | `READY_FOR_DEV` |   Sprint 6    |
-| **`FEAT-RFID-02`**  | Single-Active Tag Binding & Detachment   | RFID        | `rfid_tag_assignments` (36)                                            | **P0**   | Requires `FEAT-INV-01`                                                   | `FEAT-RFID-01`, `INV-01`                |    **5**     | `BLOCKED`       |   Sprint 6    |
+| **`FEAT-RFID-01`**  | EPC Tag Master Registry & Lifecycle      | RFID        | `rfid_tags` (35)                                                       | **P1**   | UNBLOCKED                                                                | `FEAT-IAM-01`                           |    **3**     | `COMPLETED`     |   Sprint 6    |
+| **`FEAT-RFID-02`**  | Single-Active Tag Binding & Detachment   | RFID        | `rfid_tag_assignments` (36)                                            | **P0**   | UNBLOCKED                                                                | `FEAT-RFID-01`, `INV-01`                |    **5**     | `READY_FOR_DEV` |   Sprint 6    |
 | **`FEAT-RFID-03`**  | Async Print & Encoding Worker            | RFID        | `rfid_jobs` (37), `rfid_job_items` (38)                                | **P2**   | Requires `FEAT-FOUND-04`                                                 | `FEAT-RFID-01`, `FOUND-04`              |    **5**     | `BLOCKED`       |   Sprint 6    |
 | **`FEAT-GOV-01`**   | Stock Approval & Availability Gate       | Governance  | `stock_approvals` (39)                                                 | **P0**   | Requires `FEAT-RFID-02`                                                  | `INV-01`, `RFID-02`, `STOR-01`, `QC-06` |    **5**     | `BLOCKED`       |   Sprint 6    |
 | **`FEAT-GOV-02`**   | Compliance Audit Trail Engine            | Governance  | `audit_events` (40)                                                    | **P1**   | Requires `FEAT-IAM-04`                                                   | `FEAT-IAM-04`                           |    **5**     | `BLOCKED`       |   Sprint 6    |
@@ -149,8 +149,8 @@ The Implementation Backlog contains **35 vertical slice features** covering 100%
 
 - **Focus:** RFID transponder binding, async print jobs, executive commercial stock approval, and compliance audit trail.
 - **Features Delivered:**
-  - `FEAT-RFID-01`: EPC Tag Master Registry & Lifecycle (3 pts)
-  - `FEAT-RFID-02`: Single-Active Tag Binding & Detachment (5 pts)
+  - `FEAT-RFID-01`: EPC Tag Master Registry & Lifecycle (3 pts) — COMPLETED
+  - `FEAT-RFID-02`: Single-Active Tag Binding & Detachment (5 pts) — READY_FOR_DEV
   - `FEAT-RFID-03`: Async Print & Encoding Worker (5 pts)
   - `FEAT-GOV-01`: Stock Approval & Availability Gate (5 pts)
   - `FEAT-GOV-02`: Compliance Audit Trail Engine (5 pts)
