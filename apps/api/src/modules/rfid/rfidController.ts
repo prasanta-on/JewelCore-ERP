@@ -3,6 +3,9 @@ import {
   createRfidTagSchema,
   updateRfidTagStatusSchema,
   listRfidTagsQuerySchema,
+  createRfidAssignmentSchema,
+  retireRfidAssignmentSchema,
+  listRfidAssignmentsQuerySchema,
   BadRequestError,
   NotFoundError,
 } from "@jewelcore/shared";
@@ -12,6 +15,11 @@ import {
   getRfidTagByEpc,
   updateRfidTagStatus,
   listRfidTags,
+  assignRfidTag,
+  retireRfidTagAssignment,
+  getActiveAssignmentByItemId,
+  getRfidAssignmentById,
+  listRfidAssignments,
 } from "@jewelcore/database";
 
 const UUID_REGEX =
@@ -184,6 +192,215 @@ export async function listRfidTagsHandler(
 
     const tags = await listRfidTags(query);
     res.status(200).json(tags);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Handles binding an active RFID tag to a serialized physical inventory piece (Entity 36 - FEAT-RFID-02).
+ *
+ * Enforces:
+ * - rfid:write permission
+ * - Multi-tenant organization scoping
+ * - INV-03: Single active tag per piece (409 Conflict)
+ * - INV-04: Single active piece per tag transponder (409 Conflict)
+ */
+export async function createRfidAssignmentHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const orgId = req.body.organizationId ?? req.user?.orgId;
+    if (!orgId) {
+      throw new BadRequestError(
+        "Organization context is required to bind an RFID tag",
+        "ERR_MISSING_ORG_CONTEXT",
+      );
+    }
+
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestError(
+        "User context is required to bind an RFID tag",
+        "ERR_MISSING_USER_CONTEXT",
+      );
+    }
+
+    const validated = createRfidAssignmentSchema.parse({
+      ...req.body,
+      organizationId: orgId,
+    });
+
+    const assignment = await assignRfidTag(
+      {
+        ...validated,
+        organizationId: orgId,
+      },
+      { userId },
+    );
+
+    res.status(201).json(assignment);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Handles retiring or detaching an active RFID tag assignment (Entity 36 - FEAT-RFID-02 / INV-07).
+ *
+ * Enforces:
+ * - rfid:write permission
+ * - Multi-tenant organization scoping
+ * - INV-07: Commercial availability reversion (drops AVAILABLE_FOR_SALE to UNREADY)
+ */
+export async function retireRfidAssignmentHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) {
+      throw new BadRequestError("Assignment ID parameter is required");
+    }
+
+    const orgId = req.user?.orgId;
+    if (!orgId) {
+      throw new BadRequestError(
+        "Organization context is required to retire an RFID tag assignment",
+        "ERR_MISSING_ORG_CONTEXT",
+      );
+    }
+
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestError(
+        "User context is required to retire an RFID tag assignment",
+        "ERR_MISSING_USER_CONTEXT",
+      );
+    }
+
+    const input = retireRfidAssignmentSchema.parse(req.body);
+    const retired = await retireRfidTagAssignment(id, input, orgId, { userId });
+
+    res.status(200).json(retired);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Retrieves an RFID tag assignment by ID.
+ *
+ * Enforces:
+ * - rfid:view permission
+ * - Multi-tenant organization scoping
+ */
+export async function getRfidAssignmentHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) {
+      throw new BadRequestError("Assignment ID parameter is required");
+    }
+
+    const orgId = req.user?.orgId;
+    if (!orgId) {
+      throw new BadRequestError(
+        "Organization context is required to access RFID tag assignments",
+        "ERR_MISSING_ORG_CONTEXT",
+      );
+    }
+
+    const assignment = await getRfidAssignmentById(id, orgId);
+    if (!assignment) {
+      throw new NotFoundError(
+        `RFID tag assignment with ID '${id}' not found`,
+        "ERR_RFID_ASSIGNMENT_NOT_FOUND",
+      );
+    }
+
+    res.status(200).json(assignment);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Lists RFID tag assignments matching query filters and pagination.
+ *
+ * Enforces:
+ * - rfid:view permission
+ * - Multi-tenant organization scoping
+ */
+export async function listRfidAssignmentsHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const orgId = req.user?.orgId;
+    if (!orgId) {
+      throw new BadRequestError(
+        "Organization context is required to list RFID tag assignments",
+        "ERR_MISSING_ORG_CONTEXT",
+      );
+    }
+
+    const query = listRfidAssignmentsQuerySchema.parse({
+      ...req.query,
+      organizationId: orgId,
+    });
+
+    const assignments = await listRfidAssignments(query);
+    res.status(200).json(assignments);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Retrieves the currently active RFID tag assignment for a given serialized inventory piece (INV-03).
+ *
+ * Enforces:
+ * - rfid:view permission
+ * - Multi-tenant organization scoping
+ */
+export async function getActiveItemAssignmentHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const itemId = Array.isArray(req.params.itemId)
+      ? req.params.itemId[0]
+      : req.params.itemId;
+    if (!itemId) {
+      throw new BadRequestError("Inventory item ID parameter is required");
+    }
+
+    const orgId = req.user?.orgId;
+    if (!orgId) {
+      throw new BadRequestError(
+        "Organization context is required to access item RFID assignments",
+        "ERR_MISSING_ORG_CONTEXT",
+      );
+    }
+
+    const assignment = await getActiveAssignmentByItemId(itemId, orgId);
+    if (!assignment) {
+      throw new NotFoundError(
+        `No active RFID tag assignment found for inventory item '${itemId}'`,
+        "ERR_ACTIVE_TAG_NOT_FOUND",
+      );
+    }
+
+    res.status(200).json(assignment);
   } catch (err) {
     next(err);
   }

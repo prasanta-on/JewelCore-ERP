@@ -33,3 +33,4 @@ export * from "./repositories/stockBalanceRepository.js";
 export * from "./repositories/movementRepository.js";
 export * from "./repositories/stateHistoryRepository.js";
 export * from "./repositories/rfidRepository.js";
+export * from "./repositories/rfidAssignmentRepository.js";

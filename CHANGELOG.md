@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Single-Active Tag Binding & Detachment Lifecycle (`FEAT-RFID-02` / `INV-03`, `INV-04`, `INV-07`, Entity 36)**:
+  - Created `rfid_tag_assignments` table (Entity 36) managing the full auditable lifecycle binding of an RFID tag transponder to a physical serialized jewellery item.
+  - Enforced `INV-03`: Single Active Tag per Serialized Item via partial unique index `uq_rfid_tag_assignments_active_item` on `(inventory_item_id) WHERE status = 'ACTIVE'`.
+  - Enforced `INV-04`: Single Active Item per Tag Transponder via partial unique index `uq_rfid_tag_assignments_active_tag` on `(rfid_tag_id) WHERE status = 'ACTIVE'`.
+  - Enforced `INV-08` Root Aggregate Row Locking: all tag assignment and detachment mutations serialize on the parent piece using `SELECT ... FOR UPDATE` on `inventory_items`.
+  - Prohibits binding terminal transponders (status `RETIRED` or `DAMAGED`) with 422 Unprocessable Entity (`ERR_TAG_TERMINAL_STATUS`).
+  - Automatically activates and encodes unencoded tags (`status = 'UNENCODED' -> 'ACTIVE'`) and sets `encoded_at` timestamp upon piece binding.
+  - Enforced `INV-07` Automatic Commercial Availability Reversion: retiring or detaching an active tag from an item in `AVAILABLE_FOR_SALE` commercial state automatically reverts `commercial_state = 'UNREADY'`, increments item OCC `version`, and writes an immutable audit record to `inventory_status_history`.
+  - Implemented REST API endpoints:
+    - `POST /api/v1/rfid/assignments` (`rfid:write`) - Bind RFID tag to serialized piece.
+    - `PATCH /api/v1/rfid/assignments/:id/retire` (`rfid:write`) - Retire/detach tag assignment with reason (`DAMAGED`, `DETACHED`, `ITEM_SOLD`, `RETURN_TO_VENDOR`).
+    - `GET /api/v1/rfid/assignments/:id` (`rfid:view`) - Retrieve assignment by ID.
+    - `GET /api/v1/rfid/assignments` (`rfid:view`) - List assignments with item, tag, status, and pagination filters.
+    - `GET /api/v1/rfid/items/:itemId/assignment` (`rfid:view`) - Retrieve current active assignment for an item.
+  - Added full OpenAPI 3.0 path definitions and request/response schemas.
+  - Added comprehensive repository and API integration tests (24 test cases passing).
+
+
 - **EPC Tag Master Registry & Lifecycle (`FEAT-RFID-01`, Entity 35)**:
   - Created `rfid_tags` table (Entity 35) providing global hardware transponder tracking with unique EPC constraint per tenant (`(organization_id, epc) UNIQUE`).
   - Supported multi-band transponder frequencies (`UHF_860_960_MHZ`, `HF_13_56_MHZ`, `NFC`) and TID tracking with indexing.
@@ -24,7 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `PATCH /api/v1/rfid/tags/:id/status` (`rfid:write`) - Update lifecycle status with state machine validation.
   - Added full OpenAPI 3.0 path documentation and schemas.
   - Added comprehensive repository and API integration tests (25 test cases passing).
-
 
 ## [0.5.0] - 2026-11-07
 

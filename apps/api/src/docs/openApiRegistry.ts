@@ -51,6 +51,8 @@ import {
   updateInventoryItemStateSchema,
   createRfidTagSchema,
   updateRfidTagStatusSchema,
+  createRfidAssignmentSchema,
+  retireRfidAssignmentSchema,
 } from "@jewelcore/shared";
 
 extendZodWithOpenApi(z);
@@ -3267,6 +3269,186 @@ registry.registerPath({
     },
     422: {
       description: "Invalid state transition or terminal status",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/rfid/assignments",
+  summary:
+    "Bind RFID tag to serialized inventory piece (FEAT-RFID-02 / INV-03, INV-04)",
+  tags: ["RFID"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: createRfidAssignmentSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "RFID tag assigned successfully",
+    },
+    409: {
+      description:
+        "Single-active constraint violation (INV-03 item already tagged or INV-04 tag already assigned)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+    422: {
+      description: "Transponder is in terminal status (RETIRED or DAMAGED)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/v1/rfid/assignments/{id}/retire",
+  summary: "Retire or detach an RFID tag assignment (FEAT-RFID-02 / INV-07)",
+  tags: ["RFID"],
+  security: [{ bearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: retireRfidAssignmentSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "RFID assignment retired successfully",
+    },
+    400: {
+      description: "Assignment is not in ACTIVE status",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/rfid/assignments/{id}",
+  summary: "Retrieve RFID tag assignment by ID",
+  tags: ["RFID"],
+  security: [{ bearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: {
+      description: "RFID tag assignment record",
+    },
+    404: {
+      description: "RFID tag assignment not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/rfid/assignments",
+  summary: "List RFID tag assignments with query filters and pagination",
+  tags: ["RFID"],
+  security: [{ bearerAuth: [] }],
+  parameters: [
+    {
+      name: "inventoryItemId",
+      in: "query",
+      required: false,
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "rfidTagId",
+      in: "query",
+      required: false,
+      schema: { type: "string", format: "uuid" },
+    },
+    {
+      name: "status",
+      in: "query",
+      required: false,
+      schema: {
+        type: "string",
+        enum: ["ACTIVE", "RETIRED", "VOIDED"],
+      },
+    },
+    {
+      name: "limit",
+      in: "query",
+      required: false,
+      schema: { type: "integer", minimum: 1, maximum: 100, default: 50 },
+    },
+    {
+      name: "offset",
+      in: "query",
+      required: false,
+      schema: { type: "integer", minimum: 0, default: 0 },
+    },
+  ],
+  responses: {
+    200: {
+      description: "List of RFID tag assignment records",
+    },
+    403: {
+      description: "Insufficient permissions (requires rfid:view)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/rfid/items/{itemId}/assignment",
+  summary: "Retrieve active RFID tag assignment for an inventory item (INV-03)",
+  tags: ["RFID"],
+  security: [{ bearerAuth: [] }],
+  parameters: [
+    {
+      name: "itemId",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: {
+      description: "Active RFID tag assignment record",
+    },
+    404: {
+      description: "No active RFID tag assignment found",
       content: {
         "application/problem+json": { schema: ProblemDocumentSchema },
       },

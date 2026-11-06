@@ -8,10 +8,15 @@ import {
   getRfidTagHandler,
   updateRfidTagStatusHandler,
   listRfidTagsHandler,
+  createRfidAssignmentHandler,
+  retireRfidAssignmentHandler,
+  getRfidAssignmentHandler,
+  listRfidAssignmentsHandler,
+  getActiveItemAssignmentHandler,
 } from "./rfidController.js";
 
 /**
- * RFID Infrastructure, Tracking & Hardware Gateway Router (FEAT-RFID-01).
+ * RFID Infrastructure, Tracking & Hardware Gateway Router (FEAT-RFID-01, FEAT-RFID-02).
  */
 export function createRfidRouter(): Router {
   const router = Router();
@@ -27,6 +32,33 @@ export function createRfidRouter(): Router {
     "/tags/:id/status",
     requirePermission("rfid:write"),
     updateRfidTagStatusHandler,
+  );
+
+  // Single-Active Tag Binding & Detachment Lifecycle (Entity 36 - FEAT-RFID-02)
+  router.post(
+    "/assignments",
+    requirePermission("rfid:write"),
+    createRfidAssignmentHandler,
+  );
+  router.patch(
+    "/assignments/:id/retire",
+    requirePermission("rfid:write"),
+    retireRfidAssignmentHandler,
+  );
+  router.get(
+    "/assignments/:id",
+    requirePermission("rfid:view"),
+    getRfidAssignmentHandler,
+  );
+  router.get(
+    "/assignments",
+    requirePermission("rfid:view"),
+    listRfidAssignmentsHandler,
+  );
+  router.get(
+    "/items/:itemId/assignment",
+    requirePermission("rfid:view"),
+    getActiveItemAssignmentHandler,
   );
 
   return router;
