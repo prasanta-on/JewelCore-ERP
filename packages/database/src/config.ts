@@ -26,12 +26,34 @@ export type DatabaseConfig = z.infer<typeof DatabaseConfigSchema>;
 export function loadDatabaseConfig(
   env: Record<string, string | undefined> = process.env,
 ): DatabaseConfig {
+  let urlHost: string | undefined;
+  let urlPort: number | undefined;
+  let urlUser: string | undefined;
+  let urlPassword: string | undefined;
+  let urlDatabase: string | undefined;
+
+  const dbUrl = env.DATABASE_URL;
+  if (dbUrl) {
+    try {
+      const parsed = new URL(dbUrl);
+      urlHost = parsed.hostname || undefined;
+      if (parsed.port) urlPort = Number(parsed.port);
+      if (parsed.username) urlUser = decodeURIComponent(parsed.username);
+      if (parsed.password) urlPassword = decodeURIComponent(parsed.password);
+      if (parsed.pathname && parsed.pathname.length > 1) {
+        urlDatabase = parsed.pathname.slice(1);
+      }
+    } catch {
+      // Fallback to explicit env vars if URL is invalid
+    }
+  }
+
   const rawConfig = {
-    host: env.POSTGRES_HOST ?? "localhost",
-    port: env.POSTGRES_PORT ?? 5434,
-    user: env.POSTGRES_USER ?? "jewelcore",
-    password: env.POSTGRES_PASSWORD ?? "jewelcore_dev",
-    database: env.POSTGRES_DB ?? "jewelcore_erp",
+    host: env.POSTGRES_HOST ?? urlHost ?? "localhost",
+    port: env.POSTGRES_PORT ?? urlPort ?? 5434,
+    user: env.POSTGRES_USER ?? urlUser ?? "jewelcore",
+    password: env.POSTGRES_PASSWORD ?? urlPassword ?? "jewelcore_dev",
+    database: env.POSTGRES_DB ?? urlDatabase ?? "jewelcore_erp",
     maxConnections: env.POSTGRES_MAX_CONNECTIONS ?? 20,
     idleTimeoutMillis: env.POSTGRES_IDLE_TIMEOUT_MS ?? 30000,
     connectionTimeoutMillis: env.POSTGRES_CONNECTION_TIMEOUT_MS ?? 5000,

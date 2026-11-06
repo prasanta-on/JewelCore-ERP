@@ -45,6 +45,17 @@ describe("Database Configuration Unit Tests", () => {
     expect(config.statementTimeoutMillis).toBe(8000);
   });
 
+  it("parses connection parameters from DATABASE_URL if present", () => {
+    const config = loadDatabaseConfig({
+      DATABASE_URL: "postgres://custom_user:custom_pass@db.example.com:5439/custom_db",
+    });
+    expect(config.host).toBe("db.example.com");
+    expect(config.port).toBe(5439);
+    expect(config.user).toBe("custom_user");
+    expect(config.password).toBe("custom_pass");
+    expect(config.database).toBe("custom_db");
+  });
+
   it("rejects invalid port numbers", () => {
     expect(() =>
       DatabaseConfigSchema.parse({

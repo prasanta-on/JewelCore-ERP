@@ -15,10 +15,11 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgrespassword
-          POSTGRES_DB: jewelcore_test
+          POSTGRES_USER: jewelcore
+          POSTGRES_PASSWORD: jewelcore_dev
+          POSTGRES_DB: jewelcore_erp
         ports:
+          - 5434:5432
           - 5432:5432
         options: >-
           --health-cmd pg_isready
@@ -27,7 +28,12 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/jewelcore_test
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5434
+      POSTGRES_USER: jewelcore
+      POSTGRES_PASSWORD: jewelcore_dev
+      POSTGRES_DB: jewelcore_erp
+      DATABASE_URL: postgres://jewelcore:jewelcore_dev@localhost:5434/jewelcore_erp
       NODE_ENV: test
       JWT_SECRET: jewelcore-test-jwt-secret-key-32-chars-long!
       PORT: 4000
