@@ -6,6 +6,8 @@ import {
   createRfidAssignmentSchema,
   retireRfidAssignmentSchema,
   listRfidAssignmentsQuerySchema,
+  createRfidJobSchema,
+  listRfidJobsQuerySchema,
   BadRequestError,
   NotFoundError,
 } from "@jewelcore/shared";
@@ -20,7 +22,15 @@ import {
   getActiveAssignmentByItemId,
   getRfidAssignmentById,
   listRfidAssignments,
+  createRfidJob,
+  getRfidJobById,
+  listRfidJobItems,
+  listRfidJobs,
 } from "@jewelcore/database";
+import {
+  executeRfidJobWorker,
+  SimulatedRfidPrinterAdapter,
+} from "./rfidPrinterAdapter.js";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-7][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -401,6 +411,226 @@ export async function getActiveItemAssignmentHandler(
     }
 
     res.status(200).json(assignment);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Dispatches a batch RFID print & encoding job (FEAT-RFID-03, Entities 37 & 38).
+ *
+ * Enforces:
+ * - rfid:encode permission
+ * - Multi-tenant organization scoping
+ * - Active store context resolution
+ * - Transactional outbox event insertion
+ */
+export async function createRfidJobHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const orgId = req.body.organizationId ?? req.user?.orgId;
+    if (!orgId) {
+      throw new BadRequestError(
+        "Organization context is required to create an RFID print job",
+        "ERR_MISSING_ORG_CONTEXT",
+      );
+    }
+
+    const storeId =
+      req.body.storeId ??
+      req.storeContext?.storeId ??
+      (req.headers["x-store-id"] as string | undefined);
+
+    if (!storeId) {
+      throw new BadRequestError(
+        "Store context is required to create an RFID print job",
+        "ERR_MISSING_STORE_CONTEXT",
+      );
+    }
+
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestError("User authentication context is required");
+    }
+
+    const validated = createRfidJobSchema.parse({
+      ...req.body,
+      organizationId: orgId,
+      storeId,
+    });
+
+    const result = await createRfidJob(
+      {
+        ...validated,
+        organizationId: orgId,
+        storeId,
+      },
+      { userId },
+    );
+
+    res.status(201).json({
+      success: true,
+      data: {
+        ...result.job,
+        items: result.items,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Retrieves an RFID batch job by ID.
+ */
+export async function getRfidJobHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id || !UUID_REGEX.test(id)) {
+      throw new BadRequestError("Valid RFID job UUID parameter is required");
+    }
+
+    const orgId = req.user?.orgId;
+    if (!orgId) {
+      throw new BadRequestError("Organization context is required");
+    }
+
+    const job = await getRfidJobById(id, orgId);
+    if (!job) {
+      throw new NotFoundError(
+        `RFID print job with ID '${id}' not found`,
+        "ERR_NOT_FOUND",
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      data: job,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Lists all items belonging to an RFID batch job.
+ */
+export async function listRfidJobItemsHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id || !UUID_REGEX.test(id)) {
+      throw new BadRequestError("Valid RFID job UUID parameter is required");
+    }
+
+    const orgId = req.user?.orgId;
+    if (!orgId) {
+      throw new BadRequestError("Organization context is required");
+    }
+
+    const job = await getRfidJobById(id, orgId);
+    if (!job) {
+      throw new NotFoundError(
+        `RFID print job with ID '${id}' not found`,
+        "ERR_NOT_FOUND",
+      );
+    }
+
+    const items = await listRfidJobItems(id);
+
+    res.status(200).json({
+      success: true,
+      data: items,
+      meta: { count: items.length },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Lists RFID batch jobs with filtering and pagination.
+ */
+export async function listRfidJobsHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const orgId = req.user?.orgId;
+    if (!orgId) {
+      throw new BadRequestError("Organization context is required");
+    }
+
+    const validatedQuery = listRfidJobsQuerySchema.parse({
+      ...req.query,
+      organizationId: orgId,
+    });
+
+    const jobs = await listRfidJobs(validatedQuery);
+
+    res.status(200).json({
+      success: true,
+      data: jobs,
+      meta: {
+        limit: validatedQuery.limit,
+        offset: validatedQuery.offset,
+        count: jobs.length,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Triggers synchronous or worker execution for a queued RFID batch job (FEAT-RFID-03).
+ */
+export async function processRfidJobHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id || !UUID_REGEX.test(id)) {
+      throw new BadRequestError("Valid RFID job UUID parameter is required");
+    }
+
+    const orgId = req.user?.orgId;
+    if (!orgId) {
+      throw new BadRequestError("Organization context is required");
+    }
+
+    let printerAdapter: SimulatedRfidPrinterAdapter | undefined;
+    if (typeof req.body?.simulateFailures === "number") {
+      printerAdapter = new SimulatedRfidPrinterAdapter();
+      printerAdapter.simulateTransientFailures(
+        req.body.simulateFailures,
+        req.body.errorMessage,
+      );
+    }
+
+    const job = await executeRfidJobWorker(id, orgId, {
+      userId: req.user?.userId,
+      printerAdapter,
+      baseBackoffMs: 2,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: job,
+    });
   } catch (err) {
     next(err);
   }

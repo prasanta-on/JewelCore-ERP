@@ -13,6 +13,11 @@ import {
   getRfidAssignmentHandler,
   listRfidAssignmentsHandler,
   getActiveItemAssignmentHandler,
+  createRfidJobHandler,
+  getRfidJobHandler,
+  listRfidJobItemsHandler,
+  listRfidJobsHandler,
+  processRfidJobHandler,
 } from "./rfidController.js";
 
 /**
@@ -59,6 +64,21 @@ export function createRfidRouter(): Router {
     "/items/:itemId/assignment",
     requirePermission("rfid:view"),
     getActiveItemAssignmentHandler,
+  );
+
+  // Async Print & Encoding Batch Jobs (Entities 37 & 38 - FEAT-RFID-03)
+  router.post("/jobs", requirePermission("rfid:encode"), createRfidJobHandler);
+  router.get("/jobs", requirePermission("rfid:view"), listRfidJobsHandler);
+  router.get("/jobs/:id", requirePermission("rfid:view"), getRfidJobHandler);
+  router.get(
+    "/jobs/:id/items",
+    requirePermission("rfid:view"),
+    listRfidJobItemsHandler,
+  );
+  router.post(
+    "/jobs/:id/process",
+    requirePermission("rfid:encode"),
+    processRfidJobHandler,
   );
 
   return router;

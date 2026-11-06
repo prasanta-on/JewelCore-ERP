@@ -31,8 +31,8 @@ The Implementation Backlog contains **35 vertical slice features** covering 100%
 | Priority Distribution            | P0 Blocker: 18 Features (101 pts) | P1 Critical: 14 Features (60 pts) | P2: 3 Features (13 pts) |
 | Directly Gate-Blocked Features   | 9 Features (49 pts) blocked by BIZ-Q01/Q02/Q03/DEC-05          |
 | Predecessor-Blocked Features     | 22 Features (109 pts) blocked by upstream feature completion   |
-| Completed Features               | 31 Features (158 pts) verified and committed (Sprint 0, Sprint 1, Sprint 2, Sprint 3, Sprint 4, Sprint 5 Complete; Sprint 6 in progress — 90.8% of Phase 0 MVP) |
-| READY_FOR_DEV Features           | 2 Features (10 pts) unblocked, immediately executable (FEAT-RFID-03, FEAT-GOV-02) |
+| Completed Features               | 32 Features (163 pts) verified and committed (Sprint 0, Sprint 1, Sprint 2, Sprint 3, Sprint 4, Sprint 5 Complete; Sprint 6 at 18/23 pts — 93.7% of Phase 0 MVP) |
+| READY_FOR_DEV Features           | 1 Feature (5 pts) unblocked, immediately executable (FEAT-GOV-02) |
 | PREP_READY Features              | 1 Feature (5 pts) architectural preparation unblocked          |
 | Target Delivery Sprints          | Sprint 0 through Sprint 6 (7 Two-Week Sprints = 14 Weeks)      |
 +---------------------------------------------------------------------------------------------------+
@@ -76,7 +76,7 @@ The Implementation Backlog contains **35 vertical slice features** covering 100%
 | **`FEAT-INV-04`**   | State History & OCC Concurrency          | Inventory   | `inventory_status_history` (31)                                        | **P1**   | UNBLOCKED                                                                | `FEAT-INV-03`                           |    **5**     | `COMPLETED`     |   Sprint 5    |
 | **`FEAT-RFID-01`**  | EPC Tag Master Registry & Lifecycle      | RFID        | `rfid_tags` (35)                                                       | **P1**   | UNBLOCKED                                                                | `FEAT-IAM-01`                           |    **3**     | `COMPLETED`     |   Sprint 6    |
 | **`FEAT-RFID-02`**  | Single-Active Tag Binding & Detachment   | RFID        | `rfid_tag_assignments` (36)                                            | **P0**   | UNBLOCKED                                                                | `FEAT-RFID-01`, `INV-01`                |    **5**     | `COMPLETED`     |   Sprint 6    |
-| **`FEAT-RFID-03`**  | Async Print & Encoding Worker            | RFID        | `rfid_jobs` (37), `rfid_job_items` (38)                                | **P2**   | UNBLOCKED                                                                | `FEAT-RFID-01`, `FOUND-04`              |    **5**     | `READY_FOR_DEV` |   Sprint 6    |
+| **`FEAT-RFID-03`**  | Async Print & Encoding Worker            | RFID        | `rfid_jobs` (37), `rfid_job_items` (38)                                | **P2**   | UNBLOCKED                                                                | `FEAT-RFID-01`, `FOUND-04`              |    **5**     | `COMPLETED`     |   Sprint 6    |
 | **`FEAT-GOV-01`**   | Stock Approval & Availability Gate       | Governance  | `stock_approvals` (39)                                                 | **P0**   | UNBLOCKED                                                                | `INV-01`, `RFID-02`, `STOR-01`, `QC-06` |    **5**     | `COMPLETED`     |   Sprint 6    |
 | **`FEAT-GOV-02`**   | Compliance Audit Trail Engine            | Governance  | `audit_events` (40)                                                    | **P1**   | UNBLOCKED                                                                | `FEAT-IAM-04`                           |    **5**     | `READY_FOR_DEV` |   Sprint 6    |
 
@@ -151,7 +151,7 @@ The Implementation Backlog contains **35 vertical slice features** covering 100%
 - **Features Delivered:**
   - `FEAT-RFID-01`: EPC Tag Master Registry & Lifecycle (3 pts) — COMPLETED
   - `FEAT-RFID-02`: Single-Active Tag Binding & Detachment (5 pts) — COMPLETED
-  - `FEAT-RFID-03`: Async Print & Encoding Worker (5 pts) — READY_FOR_DEV
+  - `FEAT-RFID-03`: Async Print & Encoding Worker (5 pts) — COMPLETED
   - `FEAT-GOV-01`: Stock Approval & Availability Gate (5 pts) — COMPLETED
   - `FEAT-GOV-02`: Compliance Audit Trail Engine (5 pts) — READY_FOR_DEV
   - Final End-to-End System Integration Testing & Core MVP Sign-Off.

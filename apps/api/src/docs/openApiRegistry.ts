@@ -54,6 +54,7 @@ import {
   createRfidAssignmentSchema,
   retireRfidAssignmentSchema,
   createStockApprovalSchema,
+  createRfidJobSchema,
 } from "@jewelcore/shared";
 
 extendZodWithOpenApi(z);
@@ -3584,6 +3585,153 @@ registry.registerPath({
       content: {
         "application/problem+json": { schema: ProblemDocumentSchema },
       },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/rfid/jobs",
+  summary:
+    "Dispatch a batch RFID print & encoding job (FEAT-RFID-03, Entities 37 & 38)",
+  tags: ["RFID"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: createRfidJobSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Batch RFID job queued with transactional outbox event",
+    },
+    403: {
+      description:
+        "Forbidden - Insufficient permissions (requires rfid:encode)",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/rfid/jobs",
+  summary: "List RFID batch print & encoding jobs with pagination",
+  tags: ["RFID"],
+  security: [{ bearerAuth: [] }],
+  parameters: [
+    {
+      name: "status",
+      in: "query",
+      required: false,
+      schema: {
+        type: "string",
+        enum: ["QUEUED", "PROCESSING", "COMPLETED", "FAILED", "CANCELLED"],
+      },
+    },
+    {
+      name: "printerDeviceId",
+      in: "query",
+      required: false,
+      schema: { type: "string" },
+    },
+    {
+      name: "limit",
+      in: "query",
+      required: false,
+      schema: { type: "integer", default: 50 },
+    },
+    {
+      name: "offset",
+      in: "query",
+      required: false,
+      schema: { type: "integer", default: 0 },
+    },
+  ],
+  responses: {
+    200: {
+      description: "Paginated list of RFID print jobs",
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/rfid/jobs/{id}",
+  summary: "Retrieve RFID batch print job by ID",
+  tags: ["RFID"],
+  security: [{ bearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: {
+      description: "RFID job record with execution status",
+    },
+    404: {
+      description: "RFID job not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/rfid/jobs/{id}/items",
+  summary: "List individual items for an RFID batch job",
+  tags: ["RFID"],
+  security: [{ bearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: {
+      description: "Array of RFID job item records",
+    },
+    404: {
+      description: "RFID job not found",
+      content: {
+        "application/problem+json": { schema: ProblemDocumentSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/rfid/jobs/{id}/process",
+  summary: "Trigger processing/worker execution of a queued RFID batch job",
+  tags: ["RFID"],
+  security: [{ bearerAuth: [] }],
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ],
+  responses: {
+    200: {
+      description: "Processed RFID job summary",
     },
   },
 });

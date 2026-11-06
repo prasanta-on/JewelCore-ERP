@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Async RFID Print & Encoding Worker Adapter (`FEAT-RFID-03`, Entities 37, 38 & 43)**:
+  - Created `rfid_jobs` table (Entity 37) managing batch print and transponder encoding queues with status tracking (`QUEUED`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`) and aggregate item metrics (`total_items`, `completed_items`, `failed_items`).
+  - Created `rfid_job_items` table (Entity 38) tracking granular piece encoding status (`PENDING`, `ENCODED`, `FAILED`), hardware error messages, retry counts, and bound tag references.
+  - Implemented transactional outbox event emission (`rfid.job.created`) into `outbox_events` (Entity 43 - `FEAT-FOUND-04`) inside the same atomic database transaction as job creation.
+  - Implemented hardware isolation via `RfidPrinterAdapter` interface and `SimulatedRfidPrinterAdapter` with failure injection for transient disconnect testing.
+  - Implemented `executeRfidJobWorker` with exponential backoff retry (up to 3 attempts), automatic tag master creation (`createRfidTag`), and piece binding (`assignRfidTag`).
+  - Seeded permissions: `rfid:encode` (granted to `SYSTEM_ADMIN`, `STORE_MANAGER`, `INVENTORY_CONTROLLER`) and `rfid:jobs:view` (granted to `SYSTEM_ADMIN`, `STORE_MANAGER`, `INVENTORY_CONTROLLER`, `SALES_ASSOCIATE`).
+  - Implemented REST API endpoints mounted under `/api/v1/rfid`:
+    - `POST /api/v1/rfid/jobs` (`rfid:encode`) - Create and enqueue batch RFID print and encoding job.
+    - `GET /api/v1/rfid/jobs/:id` (`rfid:view`) - Retrieve batch job header and progress by ID.
+    - `GET /api/v1/rfid/jobs/:id/items` (`rfid:view`) - List granular items for a batch job.
+    - `GET /api/v1/rfid/jobs` (`rfid:view`) - List batch jobs with status and store filtering.
+    - `POST /api/v1/rfid/jobs/:id/process` (`rfid:encode`) - Trigger synchronous or worker execution with exponential backoff and transient failure retry.
+  - Added OpenAPI 3.0 path definitions and schemas.
+  - Added comprehensive repository and API integration tests (12 test cases passing).
+
 - **Commercial Stock Approval & Availability Gate (`FEAT-GOV-01` / `INV-01`, Entity 39)**:
   - Created `stock_approvals` table (Entity 39) managing managerial stock approval authorization and gating commercial availability for finished inventory pieces.
   - Enforced `INV-01` Commercial Availability Quad-Prerequisite Gate: finished pieces can only transition to `commercial_state = 'AVAILABLE_FOR_SALE'` if:
