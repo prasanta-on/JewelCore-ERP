@@ -272,3 +272,118 @@ export const resolvePricingPolicyQuerySchema = z.object({
 export type ResolvePricingPolicyQuery = z.infer<
   typeof resolvePricingPolicyQuerySchema
 >;
+
+/**
+ * Zod schema for creating a gemstone valuation matrix entry (Entity 46 - FEAT-PRICE-03).
+ */
+export const createGemstonePriceMatrixSchema = z
+  .object({
+    organizationId: z
+      .string()
+      .uuid("Invalid organization UUID format")
+      .optional(),
+    gemstoneId: z.string().uuid("Invalid gemstone UUID format"),
+    caratRangeMin: z
+      .number()
+      .min(0, "caratRangeMin must be non-negative")
+      .default(0),
+    caratRangeMax: z
+      .number()
+      .positive("caratRangeMax must be strictly positive"),
+    cutGrade: z.string().trim().max(30).optional().nullable(),
+    colorGrade: z.string().trim().max(30).optional().nullable(),
+    clarityGrade: z.string().trim().max(30).optional().nullable(),
+    ratePerCaratCad: z
+      .number()
+      .positive("ratePerCaratCad must be strictly positive"),
+    currency: z.string().min(3).max(10).default("CAD"),
+    effectiveFrom: z.coerce.date().optional(),
+    effectiveTo: z.coerce.date().optional().nullable(),
+  })
+  .refine((data) => data.caratRangeMax >= data.caratRangeMin, {
+    message: "caratRangeMax must be greater than or equal to caratRangeMin",
+    path: ["caratRangeMax"],
+  });
+
+export type CreateGemstonePriceMatrixInput = z.infer<
+  typeof createGemstonePriceMatrixSchema
+>;
+
+/**
+ * Zod schema for updating a gemstone valuation matrix entry.
+ */
+export const updateGemstonePriceMatrixSchema = z.object({
+  cutGrade: z.string().trim().max(30).optional().nullable(),
+  colorGrade: z.string().trim().max(30).optional().nullable(),
+  clarityGrade: z.string().trim().max(30).optional().nullable(),
+  ratePerCaratCad: z
+    .number()
+    .positive("ratePerCaratCad must be strictly positive")
+    .optional(),
+  currency: z.string().min(3).max(10).optional(),
+  isActive: z.boolean().optional(),
+  effectiveTo: z.coerce.date().optional().nullable(),
+});
+
+export type UpdateGemstonePriceMatrixInput = z.infer<
+  typeof updateGemstonePriceMatrixSchema
+>;
+
+/**
+ * In-memory representation of a gemstone valuation matrix record (Entity 46).
+ */
+export interface GemstonePriceMatrixRecord {
+  id: string;
+  organizationId: string;
+  gemstoneId: string;
+  caratRangeMin: number;
+  caratRangeMax: number;
+  cutGrade: string | null;
+  colorGrade: string | null;
+  clarityGrade: string | null;
+  ratePerCaratCad: number;
+  currency: string;
+  isActive: boolean;
+  effectiveFrom: Date;
+  effectiveTo: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Zod schema for querying gemstone price matrices.
+ */
+export const listGemstonePriceMatricesQuerySchema = z.object({
+  gemstoneId: z.string().uuid("Invalid gemstone UUID format").optional(),
+  isActive: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (val === undefined) return undefined;
+      return val === "true" || val === "1";
+    }),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+
+export type ListGemstonePriceMatricesQuery = z.infer<
+  typeof listGemstonePriceMatricesQuerySchema
+>;
+
+/**
+ * Zod schema for resolving the best-matching rate per carat for a mounted gemstone.
+ */
+export const resolveGemstoneRateQuerySchema = z.object({
+  gemstoneId: z.string().uuid("Invalid gemstone UUID format"),
+  caratWeight: z.coerce
+    .number()
+    .positive("caratWeight must be strictly positive"),
+  cutGrade: z.string().trim().max(30).optional().nullable(),
+  colorGrade: z.string().trim().max(30).optional().nullable(),
+  clarityGrade: z.string().trim().max(30).optional().nullable(),
+  currency: z.string().default("CAD"),
+});
+
+export type ResolveGemstoneRateQuery = z.infer<
+  typeof resolveGemstoneRateQuerySchema
+>;

@@ -17,6 +17,13 @@ import {
   listPricingPoliciesHandler,
   resolvePricingPolicyHandler,
 } from "./pricingPolicyController.js";
+import {
+  createGemstonePriceMatrixHandler,
+  updateGemstonePriceMatrixHandler,
+  getGemstonePriceMatrixHandler,
+  listGemstonePriceMatricesHandler,
+  resolveGemstoneRateHandler,
+} from "./gemstonePriceMatrixController.js";
 
 export function createPricingRouter(): Router {
   const router = Router();
@@ -74,6 +81,33 @@ export function createPricingRouter(): Router {
     "/policies/:id",
     requirePermission("pricing:policy:manage"),
     updatePricingPolicyHandler,
+  );
+
+  // Gemstone Valuation Matrices (Entity 46 - FEAT-PRICE-03)
+  router.post(
+    "/gemstone-matrices",
+    requirePermission("pricing:matrix:manage"),
+    createGemstonePriceMatrixHandler,
+  );
+  router.get(
+    "/gemstone-matrices/resolve",
+    requirePermission("pricing:matrix:view"),
+    resolveGemstoneRateHandler,
+  );
+  router.get(
+    "/gemstone-matrices",
+    requirePermission("pricing:matrix:view"),
+    listGemstonePriceMatricesHandler,
+  );
+  router.get(
+    "/gemstone-matrices/:id",
+    requirePermission("pricing:matrix:view"),
+    getGemstonePriceMatrixHandler,
+  );
+  router.patch(
+    "/gemstone-matrices/:id",
+    requirePermission("pricing:matrix:manage"),
+    updateGemstonePriceMatrixHandler,
   );
 
   return router;

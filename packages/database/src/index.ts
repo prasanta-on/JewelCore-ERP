@@ -39,3 +39,4 @@ export * from "./repositories/rfidJobRepository.js";
 export * from "./repositories/auditEventRepository.js";
 export * from "./repositories/pricingRateRepository.js";
 export * from "./repositories/pricingPolicyRepository.js";
+export * from "./repositories/gemstonePriceMatrixRepository.js";

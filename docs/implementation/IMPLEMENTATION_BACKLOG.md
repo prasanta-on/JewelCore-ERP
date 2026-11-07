@@ -81,7 +81,7 @@ The Implementation Backlog contains **35 vertical slice features** covering 100%
 | **`FEAT-GOV-02`**   | Compliance Audit Trail Engine            | Governance  | `audit_events` (40)                                                    | **P1**   | UNBLOCKED                                                                | `FEAT-IAM-04`                           |    **5**     | `COMPLETED`  |   Sprint 6    |
 | **`FEAT-PRICE-01`** | Precious Metal Spot Rates Registry       | Pricing     | `daily_market_rates` (44)                                              | **P0**   | UNBLOCKED                                                                | `FEAT-IAM-01`, `FEAT-TAX-02`            |    **5**     | `COMPLETED`  |   Sprint 7    |
 | **`FEAT-PRICE-02`** | Making Charge Rules & Pricing Policies   | Pricing     | `pricing_policies` (45)                                                | **P0**   | UNBLOCKED                                                                | `FEAT-PRICE-01`                         |    **5**     | `COMPLETED`  |   Sprint 7    |
-| **`FEAT-PRICE-03`** | Gemstone Valuation Matrix                | Pricing     | `gemstone_price_matrices` (46)                                         | **P1**   | UNBLOCKED                                                                | `FEAT-TAX-03`, `FEAT-QC-03`             |    **5**     | `READY`      |   Sprint 7    |
+| **`FEAT-PRICE-03`** | Gemstone Valuation Matrix                | Pricing     | `gemstone_price_matrices` (46)                                         | **P1**   | UNBLOCKED                                                                | `FEAT-TAX-03`, `FEAT-QC-03`             |    **5**     | `COMPLETED`  |   Sprint 7    |
 | **`FEAT-PRICE-04`** | Dynamic Price Calculator & Snapshots     | Pricing     | `price_snapshots` (47)                                                 | **P0**   | UNBLOCKED                                                                | `FEAT-PRICE-01`, `02`, `03`, `INV-01`   |    **8**     | `READY`      |   Sprint 7    |
 
 ---
@@ -166,7 +166,7 @@ The Implementation Backlog contains **35 vertical slice features** covering 100%
 - **Features Delivered:**
   - `FEAT-PRICE-01`: Precious Metal Spot Rates Registry (5 pts) — COMPLETED
   - `FEAT-PRICE-02`: Making Charge Rules & Pricing Policies (5 pts) — COMPLETED
-  - `FEAT-PRICE-03`: Gemstone Valuation Matrix (5 pts) — READY
+  - `FEAT-PRICE-03`: Gemstone Valuation Matrix (5 pts) — COMPLETED
   - `FEAT-PRICE-04`: Dynamic Price Calculator & Snapshots (8 pts) — READY
 
 ---
