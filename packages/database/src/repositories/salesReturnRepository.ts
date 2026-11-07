@@ -16,6 +16,7 @@ import {
 import { getPool } from "../pool.js";
 import { withTransaction } from "../transaction.js";
 import { uuidv7 } from "../uuidv7.js";
+import { adjustStoreCredit } from "./storeCreditRepository.js";
 
 type Queryable = Pool | PoolClient;
 
@@ -560,7 +561,25 @@ export async function processSalesReturn(
       );
     }
 
-    // 5. Append tamper-evident audit event (Entity 36 - FEAT-GOV-02)
+    // 5. If refund method is STORE_CREDIT, credit customer's store credit account
+    if (input.refundMethod === "STORE_CREDIT" && totalNetRefundAmountCad > 0) {
+      await adjustStoreCredit(
+        {
+          customerId: invoice.customer_id,
+          storeId: input.storeId,
+          organizationId: input.organizationId,
+          performedByUserId: input.processedByUserId,
+          transactionType: "ISSUE_REFUND",
+          amountCad: totalNetRefundAmountCad,
+          referenceDocumentType: "SALES_RETURN",
+          referenceDocumentId: returnId,
+          notes: `Return refund for invoice ${invoice.invoice_number}`,
+        },
+        client,
+      );
+    }
+
+    // 6. Append tamper-evident audit event (Entity 36 - FEAT-GOV-02)
     await client.query(
       `
       INSERT INTO audit_events (

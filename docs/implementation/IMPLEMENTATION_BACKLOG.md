@@ -189,16 +189,16 @@ The Implementation Backlog contains **35 vertical slice features** covering 100%
   - `FEAT-SALES-03`: Multi-Mode Payments & Split Tender (5 pts) — COMPLETED
   - `FEAT-SALES-04`: Atomic Sale Finalization & Custody Release (8 pts) — COMPLETED
 
-### Sprint 9: Customer Returns, Old Gold Buyback & Store Credit (Weeks 19–20) — 21 Story Points (IN PROGRESS)
+### Sprint 9: Customer Returns, Old Gold Buyback & Store Credit (Weeks 19–20) — 21 Story Points (100% COMPLETE)
 
 - **Focus:** Customer sales returns and piece restocking, old gold/scrap trade-in buyback engine (BIZ-Q07), customer store credit ledger (INV-09), and POS exchange cross-flow orchestration.
-- **Features In Scope:**
-  - `FEAT-RET-01`: Customer Sales Returns & Restocking (5 pts) — IN PROGRESS
-  - `FEAT-RET-02`: Old Gold & Scrap Buyback Engine (5 pts) — READY
-  - `FEAT-RET-03`: Customer Store Credit & Ledger (5 pts) — READY
-  - `FEAT-RET-04`: Exchange & Trade-In POS Orchestration (6 pts) — READY
+- **Features Delivered:**
+  - `FEAT-RET-01`: Customer Sales Returns & Restocking (5 pts) — COMPLETED
+  - `FEAT-RET-02`: Old Gold & Scrap Buyback Engine (5 pts) — COMPLETED
+  - `FEAT-RET-03`: Customer Store Credit & Ledger (5 pts) — COMPLETED
+  - `FEAT-RET-04`: Exchange & Trade-In POS Orchestration (6 pts) — COMPLETED
 
-### Sprint 10: Multi-Branch Inter-Store Transfers & In-Transit Custody Logistics (Weeks 21–22) — 21 Story Points (PLANNED)
+### Sprint 10: Multi-Branch Inter-Store Transfers & In-Transit Custody Logistics (Weeks 21–22) — 21 Story Points (IN PROGRESS)
 
 - **Focus:** Inter-branch transfer orders, dispatch manifests, tamper-evident security bag seals (INV-13, INV-16), in-transit custody, receiving branch intake, and transit loss dispute claims (Architectural Gap 2).
 - **Features In Scope:**

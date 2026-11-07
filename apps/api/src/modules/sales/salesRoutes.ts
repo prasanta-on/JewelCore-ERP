@@ -39,6 +39,7 @@ import {
   redeemStoreCreditHandler,
   listStoreCreditTransactionsHandler,
 } from "./storeCreditController.js";
+import { processPOSExchangeHandler } from "./salesExchangeController.js";
 
 /**
  * Express router for Point of Sale, Invoicing, Customers and Settlement (FEAT-SALES).
@@ -177,6 +178,13 @@ export function createSalesRouter(): Router {
     "/store-credits/accounts/:accountId/transactions",
     requirePermission("store_credit:view"),
     listStoreCreditTransactionsHandler,
+  );
+
+  // 7. POS Exchange & Trade-In Cross-Flow Orchestration (FEAT-RET-04)
+  router.post(
+    "/exchanges",
+    requirePermission("sales:invoice:create"),
+    processPOSExchangeHandler,
   );
 
   return router;

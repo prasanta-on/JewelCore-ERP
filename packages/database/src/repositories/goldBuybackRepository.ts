@@ -14,6 +14,7 @@ import {
 import { getPool } from "../pool.js";
 import { withTransaction } from "../transaction.js";
 import { uuidv7 } from "../uuidv7.js";
+import { adjustStoreCredit } from "./storeCreditRepository.js";
 
 type Queryable = Pool | PoolClient;
 
@@ -552,7 +553,28 @@ export async function settleGoldBuybackOrder(
       throw new Error("Failed to update gold buyback order to settled");
     }
 
-    // 3. Append audit event
+    // 3. If payout method is STORE_CREDIT or TRADE_IN_EXCHANGE, credit customer account
+    if (
+      newPayoutMethod === "STORE_CREDIT" ||
+      newPayoutMethod === "TRADE_IN_EXCHANGE"
+    ) {
+      await adjustStoreCredit(
+        {
+          customerId: order.customer_id,
+          storeId: order.store_id,
+          organizationId: params.organizationId,
+          performedByUserId: params.settledByUserId,
+          transactionType: "ISSUE_BUYBACK",
+          amountCad: Number(order.net_payout_amount_cad),
+          referenceDocumentType: "GOLD_BUYBACK_ORDER",
+          referenceDocumentId: order.id,
+          notes: `Old gold buyback payout for order ${order.order_number}`,
+        },
+        client,
+      );
+    }
+
+    // 4. Append audit event
     await client.query(
       `
       INSERT INTO audit_events (

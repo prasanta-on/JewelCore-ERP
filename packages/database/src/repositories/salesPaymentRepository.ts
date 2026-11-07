@@ -13,6 +13,7 @@ import {
 import { getPool } from "../pool.js";
 import { withTransaction } from "../transaction.js";
 import { uuidv7 } from "../uuidv7.js";
+import { adjustStoreCredit } from "./storeCreditRepository.js";
 import {
   type SalesInvoiceRow,
   mapRowToSalesInvoice,
@@ -120,7 +121,25 @@ export async function recordSalesPayment(
       );
     }
 
-    // 3. Insert append-only payment record (Entity 51 / INV-09)
+    // 3. If paying with store credit, atomically deduct from customer store credit account
+    if (input.paymentMethod === "STORE_CREDIT") {
+      await adjustStoreCredit(
+        {
+          customerId: invoice.customer_id,
+          storeId: input.storeId,
+          organizationId: input.organizationId,
+          performedByUserId: input.receivedByUserId,
+          transactionType: "REDEEM_PURCHASE",
+          amountCad: input.amountCad,
+          referenceDocumentType: "SALES_INVOICE",
+          referenceDocumentId: input.salesInvoiceId,
+          notes: input.notes ?? `Payment tender on invoice ${invoice.invoice_number}`,
+        },
+        client,
+      );
+    }
+
+    // 4. Insert append-only payment record (Entity 51 / INV-09)
     const paymentId = uuidv7();
     const paymentRes = await client.query<SalesPaymentRow>(
       `

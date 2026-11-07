@@ -4,3 +4,4 @@ export * from "./salesPaymentSchemas.js";
 export * from "./salesReturnSchemas.js";
 export * from "./goldBuybackSchemas.js";
 export * from "./storeCreditSchemas.js";
+export * from "./salesExchangeSchemas.js";

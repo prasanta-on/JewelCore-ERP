@@ -91,6 +91,14 @@ describe("Sales Return Repository (FEAT-RET-01, Entities 52 & 53)", () => {
     await query(
       "DELETE FROM sales_invoices WHERE organization_id IN (SELECT id FROM organizations WHERE code IN ('ORG_RET_REPO', 'ORG_RET_REPO_ALT'));",
     );
+    await query("ALTER TABLE store_credit_transactions DISABLE TRIGGER trg_store_credit_transactions_immutability;");
+    await query(
+      "DELETE FROM store_credit_transactions WHERE organization_id IN (SELECT id FROM organizations WHERE code IN ('ORG_RET_REPO', 'ORG_RET_REPO_ALT'));",
+    );
+    await query("ALTER TABLE store_credit_transactions ENABLE TRIGGER trg_store_credit_transactions_immutability;");
+    await query(
+      "DELETE FROM store_credit_accounts WHERE organization_id IN (SELECT id FROM organizations WHERE code IN ('ORG_RET_REPO', 'ORG_RET_REPO_ALT'));",
+    );
     await query(
       "DELETE FROM customers WHERE organization_id IN (SELECT id FROM organizations WHERE code IN ('ORG_RET_REPO', 'ORG_RET_REPO_ALT'));",
     );
