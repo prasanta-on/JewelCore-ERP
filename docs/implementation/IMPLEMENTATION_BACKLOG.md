@@ -86,7 +86,14 @@ The Implementation Backlog contains **35 vertical slice features** covering 100%
 | **`FEAT-SALES-01`** | Customer Master, Profiles & KYC          | Sales       | `customers` (48)                                                       | **P1**   | UNBLOCKED                                                                | `FEAT-IAM-01`                           |    **3**     | `DONE`       |   Sprint 8    |
 | **`FEAT-SALES-02`** | Sales Invoices & Line Items              | Sales       | `sales_invoices` (49), `sales_invoice_items` (50)                       | **P0**   | UNBLOCKED                                                                | `FEAT-SALES-01`, `FEAT-PRICE-04`        |    **5**     | `DONE`       |   Sprint 8    |
 | **`FEAT-SALES-03`** | Multi-Mode Payments & Split Tender       | Sales       | `sales_payments` (51)                                                  | **P0**   | UNBLOCKED                                                                | `FEAT-SALES-02`                         |    **5**     | `DONE`       |   Sprint 8    |
-| **`FEAT-SALES-04`** | Atomic Sale Finalization & Custody Release | Sales     | `inventory_items` (28), `inventory_movements` (30)                     | **P0**   | UNBLOCKED                                                                | `FEAT-SALES-03`, `FEAT-INV-03`          |    **8**     | `DONE`       |   Sprint 8    |
+| **`FEAT-SALES-04`** | Atomic Sale Finalization & Custody Release | Sales     | `inventory_items` (28), `inventory_movements` (30)                     | **P0**   | UNBLOCKED                                                                | `FEAT-SALES-03`, `FEAT-INV-03`          |    **8**     | `COMPLETED`  |   Sprint 8    |
+| **`FEAT-RET-01`**   | Customer Sales Returns & Restocking      | Sales       | `sales_returns` (52), `sales_return_items` (53)                         | **P0**   | UNBLOCKED                                                                | `FEAT-SALES-04`                         |    **5**     | `IN_PROGRESS`|   Sprint 9    |
+| **`FEAT-RET-02`**   | Old Gold & Scrap Buyback Engine          | Sales       | `gold_buyback_orders` (54), `gold_buyback_items` (55)                   | **P0**   | UNBLOCKED (`BIZ-Q07`)                                                    | `FEAT-PRICE-01`, `FEAT-SALES-01`        |    **5**     | `READY`      |   Sprint 9    |
+| **`FEAT-RET-03`**   | Customer Store Credit & Ledger           | Sales       | `store_credit_accounts` (56), `store_credit_transactions` (57)          | **P0**   | UNBLOCKED (`INV-09`)                                                     | `FEAT-SALES-01`                         |    **5**     | `READY`      |   Sprint 9    |
+| **`FEAT-RET-04`**   | Exchange & Trade-In POS Orchestration    | Sales       | Multi-Entity Cross-Flow Orchestration                                   | **P0**   | UNBLOCKED                                                                | `FEAT-RET-01`, `02`, `03`, `SALES-03`   |    **6**     | `READY`      |   Sprint 9    |
+| **`FEAT-XFR-01`**   | Multi-Branch Transfer Orders & Approvals | Transfers   | `transfer_orders` (58), `transfer_order_items` (59)                     | **P0**   | UNBLOCKED (Architectural Gap 2)                                          | `FEAT-INV-03`, `FEAT-IAM-01`            |    **6**     | `READY`      |   Sprint 10   |
+| **`FEAT-XFR-02`**   | Security Dispatch & In-Transit Custody   | Transfers   | `transfer_manifests` (60), `security_seals` (61)                        | **P0**   | UNBLOCKED (`INV-13`, `INV-16`)                                           | `FEAT-XFR-01`                           |    **7**     | `READY`      |   Sprint 10   |
+| **`FEAT-XFR-03`**   | Receiving Branch Intake & Dispute Engine | Transfers   | `transfer_disputes` (62)                                                | **P0**   | UNBLOCKED                                                                | `FEAT-XFR-02`                           |    **8**     | `READY`      |   Sprint 10   |
 
 ---
 
@@ -182,6 +189,23 @@ The Implementation Backlog contains **35 vertical slice features** covering 100%
   - `FEAT-SALES-03`: Multi-Mode Payments & Split Tender (5 pts) — COMPLETED
   - `FEAT-SALES-04`: Atomic Sale Finalization & Custody Release (8 pts) — COMPLETED
 
+### Sprint 9: Customer Returns, Old Gold Buyback & Store Credit (Weeks 19–20) — 21 Story Points (IN PROGRESS)
+
+- **Focus:** Customer sales returns and piece restocking, old gold/scrap trade-in buyback engine (BIZ-Q07), customer store credit ledger (INV-09), and POS exchange cross-flow orchestration.
+- **Features In Scope:**
+  - `FEAT-RET-01`: Customer Sales Returns & Restocking (5 pts) — IN PROGRESS
+  - `FEAT-RET-02`: Old Gold & Scrap Buyback Engine (5 pts) — READY
+  - `FEAT-RET-03`: Customer Store Credit & Ledger (5 pts) — READY
+  - `FEAT-RET-04`: Exchange & Trade-In POS Orchestration (6 pts) — READY
+
+### Sprint 10: Multi-Branch Inter-Store Transfers & In-Transit Custody Logistics (Weeks 21–22) — 21 Story Points (PLANNED)
+
+- **Focus:** Inter-branch transfer orders, dispatch manifests, tamper-evident security bag seals (INV-13, INV-16), in-transit custody, receiving branch intake, and transit loss dispute claims (Architectural Gap 2).
+- **Features In Scope:**
+  - `FEAT-XFR-01`: Multi-Branch Transfer Orders & Approvals (6 pts) — READY
+  - `FEAT-XFR-02`: Security Dispatch & In-Transit Custody (7 pts) — READY
+  - `FEAT-XFR-03`: Receiving Branch Intake & Dispute Engine (8 pts) — READY
+
 ---
 
-_End of Implementation Backlog & Sprint Cadence (v1.1)._
+_End of Implementation Backlog & Sprint Cadence (v1.2)._

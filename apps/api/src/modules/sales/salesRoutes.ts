@@ -22,6 +22,11 @@ import {
   getSalesPaymentByIdHandler,
   listSalesPaymentsHandler,
 } from "./salesPaymentController.js";
+import {
+  createSalesReturnHandler,
+  getSalesReturnByIdHandler,
+  listSalesReturnsHandler,
+} from "./salesReturnController.js";
 
 /**
  * Express router for Point of Sale, Invoicing, Customers and Settlement (FEAT-SALES).
@@ -99,6 +104,23 @@ export function createSalesRouter(): Router {
     "/payments/:id",
     requirePermission("sales:payment:view"),
     getSalesPaymentByIdHandler,
+  );
+
+  // 4. Customer Sales Returns & Restocking Engine (Entities 52 & 53 - FEAT-RET-01)
+  router.post(
+    "/returns",
+    requirePermission("sales:return:create"),
+    createSalesReturnHandler,
+  );
+  router.get(
+    "/returns",
+    requirePermission("sales:return:view"),
+    listSalesReturnsHandler,
+  );
+  router.get(
+    "/returns/:id",
+    requirePermission("sales:return:view"),
+    getSalesReturnByIdHandler,
   );
 
   return router;
