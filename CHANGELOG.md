@@ -9,6 +9,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-07
+
+### Added
+
+- **Customer Master, Profiles & KYC (`FEAT-SALES-01`, Entity 48)**:
+  - Created `customers` table (Entity 48) with organization-scoped unique customer codes, contact details, Canadian postal and tax identifiers, dynamic tags, notes, and lifecycle status (`ACTIVE`, `INACTIVE`, `SUSPENDED`).
+  - Implemented `createCustomer`, `updateCustomer`, `getCustomerById`, and `listCustomers` repository methods with multi-tenant boundary isolation.
+  - Seeded permissions: `customers:create`, `customers:view`, `customers:update`.
+  - Implemented REST API endpoints:
+    - `POST /api/v1/sales/customers` (`customers:create`) - Register new customer profile.
+    - `GET /api/v1/sales/customers` (`customers:view`) - List customers with search, tag, and status filtering.
+    - `GET /api/v1/sales/customers/:id` (`customers:view`) - Retrieve customer profile by ID.
+    - `PATCH /api/v1/sales/customers/:id` (`customers:update`) - Update customer contact details and tags.
+
+- **Sales Invoices & Serialized Line Items (`FEAT-SALES-02`, Entities 49 & 50)**:
+  - Created `sales_invoices` (Entity 49) and `sales_invoice_items` (Entity 50) tables.
+  - Supported multi-line serialized jewellery piece sales, granular tax calculations (Canadian HST/PST), discounts, subtotal, total amount, paid amount, and balance due tracking.
+  - POS Floor Reservation (`INV-08`): Atomically transitions piece `commercial_state` to `RESERVED` upon invoice creation with `SELECT ... FOR UPDATE` locking to prevent simultaneous double-selling.
+  - Cancellation Workflow: Cancelling pending/draft invoices automatically releases reserved pieces back to `AVAILABLE_FOR_SALE`.
+  - Seeded permissions: `sales:invoice:create`, `sales:invoice:view`, `sales:invoice:cancel`.
+  - Implemented REST API endpoints:
+    - `POST /api/v1/sales/invoices` (`sales:invoice:create`) - Generate new sales invoice with serialized pieces.
+    - `GET /api/v1/sales/invoices` (`sales:invoice:view`) - List sales invoices with store, customer, status, and query filtering.
+    - `GET /api/v1/sales/invoices/:id` (`sales:invoice:view`) - Retrieve sales invoice details with line items.
+    - `POST /api/v1/sales/invoices/:id/cancel` (`sales:invoice:cancel`) - Cancel pending invoice and unreserve pieces.
+
+- **Multi-Mode Payments & Split Tender Engine (`FEAT-SALES-03`, Entity 51)**:
+  - Created `sales_payments` table (Entity 51) supporting diverse tender modes (`CASH`, `CREDIT_CARD`, `DEBIT_CARD`, `BANK_TRANSFER`, `CHEQUE`, `STORE_CREDIT`, `GIFT_CARD`).
+  - Implemented split tender settlement: Allows multiple payments against an invoice until `balance_due_cad` reaches zero.
+  - Enforced `INV-09` Append-Only Immutability: PostgreSQL database trigger `trg_sales_payments_immutability` guarantees that payment records cannot be altered or removed.
+  - Automatic Status Progression: Invoices transition from `PENDING_PAYMENT` $\to$ `PARTIALLY_PAID` $\to$ `PAID` with overpayment protection (`ERR_PAYMENT_EXCEEDS_BALANCE`).
+  - Seeded permissions: `sales:payment:record`, `sales:payment:view`.
+  - Implemented REST API endpoints:
+    - `POST /api/v1/sales/payments` (`sales:payment:record`) - Record payment tender against invoice.
+    - `GET /api/v1/sales/payments` (`sales:payment:view`) - List payments filtered by invoice, method, and status.
+    - `GET /api/v1/sales/payments/:id` (`sales:payment:view`) - Retrieve payment record by ID.
+
+- **Atomic Sale Finalization & Custody Release Engine (`FEAT-SALES-04`)**:
+  - Implemented `finalizeSaleAndReleaseCustody` transactional engine with pessimistic row locking.
+  - Requires invoice to be fully settled (`status = 'PAID'`, `balance_due_cad = 0`) before custody handover.
+  - Physical Custody Handover:
+    - Transitions piece `commercial_state` $\to$ `SOLD` and `custody_state` $\to$ `RELEASED`.
+    - Clears piece `current_compartment_id` (null) as piece leaves store custody.
+    - Appends immutable `CUSTODY_DEPARTURE` movement record to `inventory_movements` (Entity 30 / `INV-09`).
+    - Records state transitions in `inventory_status_history` (Entity 31) for both commercial and custody dimensions.
+    - Records tamper-evident audit event in `audit_events` (Entity 36 / `FEAT-GOV-02`).
+    - Stamps invoice with `released_at` timestamp and `released_by_user_id`.
+  - Prevents repeated custody handover attempts with conflict rejection (`ERR_CUSTODY_ALREADY_RELEASED`).
+  - Seeded permission: `sales:custody:release`.
+  - Implemented REST API endpoint:
+    - `POST /api/v1/sales/invoices/:id/finalize-release` (`sales:custody:release`) - Finalize sale and release custody of paid pieces.
+
 ## [0.7.0] - 2026-11-07
 
 ### Added

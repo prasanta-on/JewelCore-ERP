@@ -2,6 +2,7 @@ import type { Pool, PoolClient } from "pg";
 import {
   type SalesInvoiceRecord,
   type SalesInvoiceItemRecord,
+  type FinalizeSaleAndReleaseResult,
   type CreateSalesInvoiceInput,
   type ListSalesInvoicesQuery,
   type SalesInvoiceStatus,
@@ -34,6 +35,8 @@ export interface SalesInvoiceRow {
   notes: string | null;
   created_at: Date | string;
   updated_at: Date | string;
+  released_at?: Date | string | null;
+  released_by_user_id?: string | null;
   customer_name?: string;
   store_name?: string;
 }
@@ -109,6 +112,12 @@ export function mapRowToSalesInvoice(
       row.updated_at instanceof Date
         ? row.updated_at
         : new Date(row.updated_at),
+    releasedAt: row.released_at
+      ? row.released_at instanceof Date
+        ? row.released_at
+        : new Date(row.released_at)
+      : null,
+    releasedByUserId: row.released_by_user_id ?? null,
     items,
     customerName: row.customer_name,
     storeName: row.store_name,
@@ -633,6 +642,332 @@ export async function cancelSalesInvoice(
       ...mapRowToSalesInvoice(updateRes.rows[0]!, items),
       customerName: invoice.customer_name,
       storeName: invoice.store_name,
+    };
+  };
+
+  if (clientOverride) {
+    return runner(clientOverride);
+  }
+  return withTransaction((tx) => runner(tx.rawClient));
+}
+
+/**
+ * Atomically finalizes a sale and releases physical custody of serialized pieces (FEAT-SALES-04).
+ * Enforces strict transactional invariants:
+ * 1. Invoice must be in PAID status with zero balance due.
+ * 2. Custody of invoice pieces has not been previously released.
+ * 3. Locks all piece records with SELECT FOR UPDATE.
+ * 4. Transitions commercial_state to SOLD and custody_state to RELEASED.
+ * 5. Appends immutable CUSTODY_DEPARTURE movement records to inventory_movements (INV-09).
+ * 6. Appends audit history to inventory_status_history and audit_events.
+ * 7. Marks invoice with released_at timestamp and releasing actor.
+ */
+export async function finalizeSaleAndReleaseCustody(
+  params: {
+    invoiceId: string;
+    organizationId: string;
+    actorUserId: string;
+    reason?: string;
+  },
+  clientOverride?: Queryable,
+): Promise<FinalizeSaleAndReleaseResult> {
+  const runner = async (
+    client: Queryable,
+  ): Promise<FinalizeSaleAndReleaseResult> => {
+    // 1. Lock invoice with SELECT FOR UPDATE
+    const invRes = await client.query<SalesInvoiceRow>(
+      `
+      SELECT
+        si.*,
+        c.first_name || ' ' || c.last_name AS customer_name,
+        s.name AS store_name
+      FROM sales_invoices si
+      JOIN customers c ON c.id = si.customer_id
+      JOIN stores s ON s.id = si.store_id
+      WHERE si.id = $1 AND si.organization_id = $2
+      FOR UPDATE
+      `,
+      [params.invoiceId, params.organizationId],
+    );
+
+    const invoice = invRes.rows[0];
+    if (!invoice) {
+      throw new NotFoundError("SalesInvoice", params.invoiceId);
+    }
+
+    if (invoice.status !== "PAID" || Number(invoice.balance_due_cad) > 0) {
+      throw new UnprocessableEntityError(
+        `Cannot release physical custody for an unpaid or partially settled invoice (status: ${invoice.status}, balance due: ${invoice.balance_due_cad})`,
+        "ERR_INVOICE_NOT_PAID",
+      );
+    }
+
+    if (invoice.released_at) {
+      throw new ConflictError(
+        "Physical custody of pieces on this invoice has already been released",
+        "ERR_CUSTODY_ALREADY_RELEASED",
+      );
+    }
+
+    // 2. Fetch line items
+    const itemsRes = await client.query<SalesInvoiceItemRow>(
+      `
+      SELECT
+        sii.*,
+        ii.serial_number AS item_serial_number,
+        ii.item_name
+      FROM sales_invoice_items sii
+      JOIN inventory_items ii ON ii.id = sii.inventory_item_id
+      WHERE sii.sales_invoice_id = $1
+      ORDER BY sii.created_at ASC
+      `,
+      [params.invoiceId],
+    );
+
+    if (itemsRes.rows.length === 0) {
+      throw new UnprocessableEntityError(
+        "Sales invoice contains no line items to release",
+        "ERR_EMPTY_INVOICE",
+      );
+    }
+
+    const itemRecords = itemsRes.rows.map(mapRowToSalesInvoiceItem);
+    const itemIds = itemRecords.map((i) => i.inventoryItemId);
+
+    // 3. Lock and retrieve inventory pieces
+    const piecesRes = await client.query<{
+      id: string;
+      organization_id: string;
+      store_id: string;
+      product_sku_id: string;
+      serial_number: string;
+      current_compartment_id: string | null;
+      custody_state: string;
+      commercial_state: string;
+      gross_weight_grams: string | number;
+    }>(
+      `
+      SELECT
+        id,
+        organization_id,
+        store_id,
+        product_sku_id,
+        serial_number,
+        current_compartment_id,
+        custody_state,
+        commercial_state,
+        gross_weight_grams
+      FROM inventory_items
+      WHERE id = ANY($1::uuid[]) AND organization_id = $2
+      FOR UPDATE
+      `,
+      [itemIds, params.organizationId],
+    );
+
+    const pieces = piecesRes.rows;
+    if (pieces.length !== itemIds.length) {
+      throw new NotFoundError(
+        "Some physical inventory pieces could not be found for custody release",
+      );
+    }
+
+    const movementIds: string[] = [];
+
+    // 4. Record movements and status history for each piece
+    for (const piece of pieces) {
+      const movementId = uuidv7();
+      movementIds.push(movementId);
+
+      // 4a. Append-only custody departure movement (Entity 30 / INV-09)
+      await client.query(
+        `
+        INSERT INTO inventory_movements (
+          id,
+          organization_id,
+          store_id,
+          inventory_item_id,
+          product_sku_id,
+          movement_type,
+          from_compartment_id,
+          to_compartment_id,
+          from_custody_state,
+          to_custody_state,
+          quantity,
+          weight_grams,
+          actor_user_id,
+          reason_code,
+          reference_document_type,
+          reference_document_id,
+          moved_at,
+          created_at
+        )
+        VALUES (
+          $1, $2, $3, $4, $5, 'CUSTODY_DEPARTURE',
+          $6, NULL, $7, 'RELEASED', 1, $8,
+          $9, 'POINT_OF_SALE_RELEASE', 'SALES_INVOICE', $10,
+          clock_timestamp(), clock_timestamp()
+        )
+        `,
+        [
+          movementId,
+          params.organizationId,
+          invoice.store_id,
+          piece.id,
+          piece.product_sku_id,
+          piece.current_compartment_id,
+          piece.custody_state,
+          Number(piece.gross_weight_grams),
+          params.actorUserId,
+          invoice.id,
+        ],
+      );
+
+      // 4b. Status history - Commercial Dimension (RESERVED -> SOLD)
+      await client.query(
+        `
+        INSERT INTO inventory_status_history (
+          id,
+          organization_id,
+          inventory_item_id,
+          dimension_changed,
+          old_state,
+          new_state,
+          actor_user_id,
+          reason,
+          transitioned_at,
+          created_at
+        )
+        VALUES (
+          $1, $2, $3, 'COMMERCIAL', $4, 'SOLD', $5,
+          $6, clock_timestamp(), clock_timestamp()
+        )
+        `,
+        [
+          uuidv7(),
+          params.organizationId,
+          piece.id,
+          piece.commercial_state,
+          params.actorUserId,
+          `Sale finalized on invoice ${invoice.invoice_number}`,
+        ],
+      );
+
+      // 4c. Status history - Custody Dimension (IN_VAULT / IN_DISPLAY -> RELEASED)
+      await client.query(
+        `
+        INSERT INTO inventory_status_history (
+          id,
+          organization_id,
+          inventory_item_id,
+          dimension_changed,
+          old_state,
+          new_state,
+          actor_user_id,
+          reason,
+          transitioned_at,
+          created_at
+        )
+        VALUES (
+          $1, $2, $3, 'CUSTODY', $4, 'RELEASED', $5,
+          $6, clock_timestamp(), clock_timestamp()
+        )
+        `,
+        [
+          uuidv7(),
+          params.organizationId,
+          piece.id,
+          piece.custody_state,
+          params.actorUserId,
+          `Customer physical handover on invoice ${invoice.invoice_number}`,
+        ],
+      );
+    }
+
+    // 5. Update all pieces to SOLD & RELEASED
+    await client.query(
+      `
+      UPDATE inventory_items
+      SET
+        commercial_state = 'SOLD',
+        custody_state = 'RELEASED',
+        current_compartment_id = NULL,
+        version = version + 1,
+        updated_at = clock_timestamp()
+      WHERE id = ANY($1::uuid[]) AND organization_id = $2
+      `,
+      [itemIds, params.organizationId],
+    );
+
+    // 6. Append tamper-evident audit event (Entity 36 - FEAT-GOV-02)
+    const auditEventId = uuidv7();
+    await client.query(
+      `
+      INSERT INTO audit_events (
+        id,
+        organization_id,
+        store_id,
+        actor_user_id,
+        action,
+        resource_type,
+        resource_id,
+        payload_before_json,
+        payload_after_json,
+        reason,
+        occurred_at,
+        created_at
+      )
+      VALUES (
+        $1, $2, $3, $4, 'FINALIZE_AND_RELEASE_CUSTODY', 'sales_invoices', $5,
+        $6, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+      )
+      `,
+      [
+        auditEventId,
+        params.organizationId,
+        invoice.store_id,
+        params.actorUserId,
+        invoice.id,
+        JSON.stringify({
+          invoiceNumber: invoice.invoice_number,
+          status: invoice.status,
+          releasedAt: null,
+        }),
+        JSON.stringify({
+          invoiceNumber: invoice.invoice_number,
+          status: invoice.status,
+          releasedAt: new Date().toISOString(),
+          releasedPieceCount: itemIds.length,
+          itemIds,
+        }),
+        params.reason ?? "Customer handover at point of sale",
+      ],
+    );
+
+    // 7. Update Sales Invoice with released_at timestamp & user
+    const updatedInvRes = await client.query<SalesInvoiceRow>(
+      `
+      UPDATE sales_invoices
+      SET
+        released_at = CURRENT_TIMESTAMP,
+        released_by_user_id = $1,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2 AND organization_id = $3
+      RETURNING *
+      `,
+      [params.actorUserId, invoice.id, params.organizationId],
+    );
+
+    const updatedInvRow = updatedInvRes.rows[0]!;
+
+    return {
+      invoice: {
+        ...mapRowToSalesInvoice(updatedInvRow, itemRecords),
+        customerName: invoice.customer_name,
+        storeName: invoice.store_name,
+      },
+      releasedPieceIds: itemIds,
+      movementIds,
+      releasedAt: new Date(updatedInvRow.released_at!),
     };
   };
 

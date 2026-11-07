@@ -15,6 +15,7 @@ import {
   getSalesInvoiceByIdHandler,
   listSalesInvoicesHandler,
   cancelSalesInvoiceHandler,
+  finalizeSaleAndReleaseHandler,
 } from "./salesInvoiceController.js";
 import {
   recordSalesPaymentHandler,
@@ -76,6 +77,11 @@ export function createSalesRouter(): Router {
     "/invoices/:id/cancel",
     requirePermission("sales:invoice:cancel"),
     cancelSalesInvoiceHandler,
+  );
+  router.post(
+    "/invoices/:id/finalize-release",
+    requirePermission("sales:custody:release"),
+    finalizeSaleAndReleaseHandler,
   );
 
   // 3. Multi-Mode Payments & Split Tender (Entity 51 - FEAT-SALES-03)

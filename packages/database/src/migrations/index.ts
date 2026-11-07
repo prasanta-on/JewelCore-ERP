@@ -36,6 +36,7 @@ import { migration00033CreatePriceSnapshots } from "./00033_create_price_snapsho
 import { migration00034CreateSalesCustomers } from "./00034_create_sales_customers.js";
 import { migration00035CreateSalesInvoices } from "./00035_create_sales_invoices.js";
 import { migration00036CreateSalesPayments } from "./00036_create_sales_payments.js";
+import { migration00037CreateSalesFinalization } from "./00037_create_sales_finalization.js";
 
 export const allMigrations: MigrationDefinition[] = [
   migration00001CreateIamOrganizationsAndStores,
@@ -74,6 +75,7 @@ export const allMigrations: MigrationDefinition[] = [
   migration00034CreateSalesCustomers,
   migration00035CreateSalesInvoices,
   migration00036CreateSalesPayments,
+  migration00037CreateSalesFinalization,
 ];
 
 /**
@@ -119,3 +121,4 @@ export * from "./00033_create_price_snapshots.js";
 export * from "./00034_create_sales_customers.js";
 export * from "./00035_create_sales_invoices.js";
 export * from "./00036_create_sales_payments.js";
+export * from "./00037_create_sales_finalization.js";

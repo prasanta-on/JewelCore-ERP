@@ -10,6 +10,7 @@ import {
   getSalesInvoiceById,
   listSalesInvoices,
   cancelSalesInvoice,
+  finalizeSaleAndReleaseCustody,
 } from "@jewelcore/database";
 
 /**
@@ -161,6 +162,50 @@ export async function cancelSalesInvoiceHandler(
     res.status(200).json({
       success: true,
       data: cancelled,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Atomically finalizes sale and releases physical custody of serialized pieces (FEAT-SALES-04).
+ */
+export async function finalizeSaleAndReleaseHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const orgId = req.user?.orgId ?? req.storeContext?.organizationId;
+    if (!orgId || typeof orgId !== "string") {
+      throw new BadRequestError(
+        "Organization context is required to release custody",
+        "ERR_MISSING_ORG_CONTEXT",
+      );
+    }
+
+    const userId = req.user?.userId;
+    if (!userId || typeof userId !== "string") {
+      throw new BadRequestError(
+        "Authenticated user context is required to release custody",
+        "ERR_MISSING_USER_CONTEXT",
+      );
+    }
+
+    const invoiceId = req.params.id as string;
+    const reason = req.body?.reason as string | undefined;
+
+    const result = await finalizeSaleAndReleaseCustody({
+      invoiceId,
+      organizationId: orgId,
+      actorUserId: userId,
+      reason,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: result,
     });
   } catch (err) {
     next(err);

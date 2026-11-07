@@ -132,7 +132,19 @@ export interface SalesInvoiceRecord {
   notes: string | null;
   createdAt: Date;
   updatedAt: Date;
+  releasedAt?: Date | null;
+  releasedByUserId?: string | null;
   items?: SalesInvoiceItemRecord[];
   customerName?: string;
   storeName?: string;
+}
+
+/**
+ * Result of atomic sale finalization and custody release (FEAT-SALES-04).
+ */
+export interface FinalizeSaleAndReleaseResult {
+  invoice: SalesInvoiceRecord;
+  releasedPieceIds: string[];
+  movementIds: string[];
+  releasedAt: Date;
 }
