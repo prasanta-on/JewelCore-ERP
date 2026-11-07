@@ -16,6 +16,11 @@ import {
   listSalesInvoicesHandler,
   cancelSalesInvoiceHandler,
 } from "./salesInvoiceController.js";
+import {
+  recordSalesPaymentHandler,
+  getSalesPaymentByIdHandler,
+  listSalesPaymentsHandler,
+} from "./salesPaymentController.js";
 
 /**
  * Express router for Point of Sale, Invoicing, Customers and Settlement (FEAT-SALES).
@@ -71,6 +76,23 @@ export function createSalesRouter(): Router {
     "/invoices/:id/cancel",
     requirePermission("sales:invoice:cancel"),
     cancelSalesInvoiceHandler,
+  );
+
+  // 3. Multi-Mode Payments & Split Tender (Entity 51 - FEAT-SALES-03)
+  router.post(
+    "/payments",
+    requirePermission("sales:payment:record"),
+    recordSalesPaymentHandler,
+  );
+  router.get(
+    "/payments",
+    requirePermission("sales:payment:view"),
+    listSalesPaymentsHandler,
+  );
+  router.get(
+    "/payments/:id",
+    requirePermission("sales:payment:view"),
+    getSalesPaymentByIdHandler,
   );
 
   return router;

@@ -43,3 +43,4 @@ export * from "./repositories/gemstonePriceMatrixRepository.js";
 export * from "./repositories/priceSnapshotRepository.js";
 export * from "./repositories/customerRepository.js";
 export * from "./repositories/salesInvoiceRepository.js";
+export * from "./repositories/salesPaymentRepository.js";

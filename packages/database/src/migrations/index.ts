@@ -35,6 +35,7 @@ import { migration00032CreateGemstonePriceMatrices } from "./00032_create_gemsto
 import { migration00033CreatePriceSnapshots } from "./00033_create_price_snapshots.js";
 import { migration00034CreateSalesCustomers } from "./00034_create_sales_customers.js";
 import { migration00035CreateSalesInvoices } from "./00035_create_sales_invoices.js";
+import { migration00036CreateSalesPayments } from "./00036_create_sales_payments.js";
 
 export const allMigrations: MigrationDefinition[] = [
   migration00001CreateIamOrganizationsAndStores,
@@ -72,6 +73,7 @@ export const allMigrations: MigrationDefinition[] = [
   migration00033CreatePriceSnapshots,
   migration00034CreateSalesCustomers,
   migration00035CreateSalesInvoices,
+  migration00036CreateSalesPayments,
 ];
 
 /**
@@ -116,3 +118,4 @@ export * from "./00032_create_gemstone_price_matrices.js";
 export * from "./00033_create_price_snapshots.js";
 export * from "./00034_create_sales_customers.js";
 export * from "./00035_create_sales_invoices.js";
+export * from "./00036_create_sales_payments.js";
