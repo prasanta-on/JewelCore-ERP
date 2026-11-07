@@ -48,3 +48,4 @@ export * from "./repositories/salesReturnRepository.js";
 export * from "./repositories/goldBuybackRepository.js";
 export * from "./repositories/storeCreditRepository.js";
 export * from "./repositories/salesExchangeRepository.js";
+export * from "./repositories/transferOrderRepository.js";
