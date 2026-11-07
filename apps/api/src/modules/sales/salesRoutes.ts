@@ -27,6 +27,12 @@ import {
   getSalesReturnByIdHandler,
   listSalesReturnsHandler,
 } from "./salesReturnController.js";
+import {
+  createGoldBuybackOrderHandler,
+  settleGoldBuybackOrderHandler,
+  getGoldBuybackOrderByIdHandler,
+  listGoldBuybackOrdersHandler,
+} from "./goldBuybackController.js";
 
 /**
  * Express router for Point of Sale, Invoicing, Customers and Settlement (FEAT-SALES).
@@ -121,6 +127,28 @@ export function createSalesRouter(): Router {
     "/returns/:id",
     requirePermission("sales:return:view"),
     getSalesReturnByIdHandler,
+  );
+
+  // 5. Old Gold & Scrap Buyback Engine (Entities 54 & 55 - FEAT-RET-02)
+  router.post(
+    "/buybacks",
+    requirePermission("buyback:order:create"),
+    createGoldBuybackOrderHandler,
+  );
+  router.post(
+    "/buybacks/:id/settle",
+    requirePermission("buyback:order:settle"),
+    settleGoldBuybackOrderHandler,
+  );
+  router.get(
+    "/buybacks",
+    requirePermission("buyback:order:view"),
+    listGoldBuybackOrdersHandler,
+  );
+  router.get(
+    "/buybacks/:id",
+    requirePermission("buyback:order:view"),
+    getGoldBuybackOrderByIdHandler,
   );
 
   return router;
