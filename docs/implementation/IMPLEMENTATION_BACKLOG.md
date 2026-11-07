@@ -84,8 +84,8 @@ The Implementation Backlog contains **35 vertical slice features** covering 100%
 | **`FEAT-PRICE-03`** | Gemstone Valuation Matrix                | Pricing     | `gemstone_price_matrices` (46)                                         | **P1**   | UNBLOCKED                                                                | `FEAT-TAX-03`, `FEAT-QC-03`             |    **5**     | `COMPLETED`  |   Sprint 7    |
 | **`FEAT-PRICE-04`** | Dynamic Price Calculator & Snapshots     | Pricing     | `price_snapshots` (47)                                                 | **P0**   | UNBLOCKED                                                                | `FEAT-PRICE-01`, `02`, `03`, `INV-01`   |    **8**     | `COMPLETED`  |   Sprint 7    |
 | **`FEAT-SALES-01`** | Customer Master, Profiles & KYC          | Sales       | `customers` (48)                                                       | **P1**   | UNBLOCKED                                                                | `FEAT-IAM-01`                           |    **3**     | `DONE`       |   Sprint 8    |
-| **`FEAT-SALES-02`** | Sales Invoices & Line Items              | Sales       | `sales_invoices` (49), `sales_invoice_items` (50)                       | **P0**   | UNBLOCKED                                                                | `FEAT-SALES-01`, `FEAT-PRICE-04`        |    **5**     | `IN_PROGRESS`|   Sprint 8    |
-| **`FEAT-SALES-03`** | Multi-Mode Payments & Split Tender       | Sales       | `sales_payments` (51)                                                  | **P0**   | UNBLOCKED                                                                | `FEAT-SALES-02`                         |    **5**     | `READY`      |   Sprint 8    |
+| **`FEAT-SALES-02`** | Sales Invoices & Line Items              | Sales       | `sales_invoices` (49), `sales_invoice_items` (50)                       | **P0**   | UNBLOCKED                                                                | `FEAT-SALES-01`, `FEAT-PRICE-04`        |    **5**     | `DONE`       |   Sprint 8    |
+| **`FEAT-SALES-03`** | Multi-Mode Payments & Split Tender       | Sales       | `sales_payments` (51)                                                  | **P0**   | UNBLOCKED                                                                | `FEAT-SALES-02`                         |    **5**     | `IN_PROGRESS`|   Sprint 8    |
 | **`FEAT-SALES-04`** | Atomic Sale Finalization & Custody Release | Sales     | `inventory_items` (28), `inventory_movements` (30)                     | **P0**   | UNBLOCKED                                                                | `FEAT-SALES-03`, `FEAT-INV-03`          |    **8**     | `READY`      |   Sprint 8    |
 
 ---
@@ -178,8 +178,8 @@ The Implementation Backlog contains **35 vertical slice features** covering 100%
 - **Focus:** Customer Master & KYC, POS sales invoices, multi-mode payment tenders, and atomic sale custody release.
 - **Features Delivered:**
   - `FEAT-SALES-01`: Customer Master, Profiles & KYC (3 pts) — DONE
-  - `FEAT-SALES-02`: Sales Invoices & Line Items (5 pts) — IN PROGRESS
-  - `FEAT-SALES-03`: Multi-Mode Payments & Split Tender (5 pts) — READY
+  - `FEAT-SALES-02`: Sales Invoices & Line Items (5 pts) — DONE
+  - `FEAT-SALES-03`: Multi-Mode Payments & Split Tender (5 pts) — IN PROGRESS
   - `FEAT-SALES-04`: Atomic Sale Finalization & Custody Release (8 pts) — READY
 
 ---
