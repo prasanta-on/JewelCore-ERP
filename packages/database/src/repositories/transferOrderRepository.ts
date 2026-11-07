@@ -127,7 +127,7 @@ export async function createTransferOrder(
         data.sourceStoreId,
         data.destinationStoreId,
         TransferOrderStatus.DRAFT,
-        data.priority,
+        data.priority || TransferOrderPriority.NORMAL,
         requestedByUserId,
         data.notes || null,
       ],

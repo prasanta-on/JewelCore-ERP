@@ -14,6 +14,11 @@ import {
   getTransferOrderHandler,
   listTransferOrdersHandler,
 } from "./transferOrderController.js";
+import {
+  dispatchTransferOrderHandler,
+  getTransferManifestHandler,
+  listTransferManifestsHandler,
+} from "./transferDispatchController.js";
 
 /**
  * Express router for Multi-Branch Inter-Store Transfers & Logistics (Sprint 10).
@@ -79,6 +84,27 @@ export function createTransfersRouter(): Router {
     "/orders/:id/cancel",
     requirePermission("transfer:order:create"),
     cancelTransferOrderHandler,
+  );
+
+  // ==========================================
+  // FEAT-XFR-02: Manifests & Security Dispatch
+  // ==========================================
+  router.post(
+    "/manifests",
+    requirePermission("transfer:manifest:create"),
+    dispatchTransferOrderHandler,
+  );
+
+  router.get(
+    "/manifests",
+    requirePermission("transfer:manifest:view"),
+    listTransferManifestsHandler,
+  );
+
+  router.get(
+    "/manifests/:id",
+    requirePermission("transfer:manifest:view"),
+    getTransferManifestHandler,
   );
 
   return router;
