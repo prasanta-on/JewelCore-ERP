@@ -19,6 +19,13 @@ import {
   getTransferManifestHandler,
   listTransferManifestsHandler,
 } from "./transferDispatchController.js";
+import {
+  receiveTransferManifestHandler,
+  createTransferDisputeHandler,
+  resolveTransferDisputeHandler,
+  getTransferDisputeHandler,
+  listTransferDisputesHandler,
+} from "./transferReceivingController.js";
 
 /**
  * Express router for Multi-Branch Inter-Store Transfers & Logistics (Sprint 10).
@@ -105,6 +112,39 @@ export function createTransfersRouter(): Router {
     "/manifests/:id",
     requirePermission("transfer:manifest:view"),
     getTransferManifestHandler,
+  );
+
+  // ==========================================
+  // FEAT-XFR-03: Receiving Intake & Dispute Engine
+  // ==========================================
+  router.post(
+    "/manifests/:id/receive",
+    requirePermission("transfer:receive"),
+    receiveTransferManifestHandler,
+  );
+
+  router.post(
+    "/disputes",
+    requirePermission("transfer:dispute:create"),
+    createTransferDisputeHandler,
+  );
+
+  router.post(
+    "/disputes/:id/resolve",
+    requirePermission("transfer:dispute:resolve"),
+    resolveTransferDisputeHandler,
+  );
+
+  router.get(
+    "/disputes",
+    requirePermission("transfer:order:view"),
+    listTransferDisputesHandler,
+  );
+
+  router.get(
+    "/disputes/:id",
+    requirePermission("transfer:order:view"),
+    getTransferDisputeHandler,
   );
 
   return router;
