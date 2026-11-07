@@ -33,6 +33,7 @@ import { migration00030CreatePricingMetalRates } from "./00030_create_pricing_me
 import { migration00031CreatePricingPolicies } from "./00031_create_pricing_policies.js";
 import { migration00032CreateGemstonePriceMatrices } from "./00032_create_gemstone_price_matrices.js";
 import { migration00033CreatePriceSnapshots } from "./00033_create_price_snapshots.js";
+import { migration00034CreateSalesCustomers } from "./00034_create_sales_customers.js";
 
 export const allMigrations: MigrationDefinition[] = [
   migration00001CreateIamOrganizationsAndStores,
@@ -68,6 +69,7 @@ export const allMigrations: MigrationDefinition[] = [
   migration00031CreatePricingPolicies,
   migration00032CreateGemstonePriceMatrices,
   migration00033CreatePriceSnapshots,
+  migration00034CreateSalesCustomers,
 ];
 
 /**
@@ -110,3 +112,4 @@ export * from "./00030_create_pricing_metal_rates.js";
 export * from "./00031_create_pricing_policies.js";
 export * from "./00032_create_gemstone_price_matrices.js";
 export * from "./00033_create_price_snapshots.js";
+export * from "./00034_create_sales_customers.js";

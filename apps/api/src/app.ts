@@ -15,6 +15,7 @@ import { createQcRouter } from "./modules/qc/qcRoutes.js";
 import { createInventoryRouter } from "./modules/inventory/inventoryRoutes.js";
 import { createRfidRouter } from "./modules/rfid/rfidRoutes.js";
 import { createPricingRouter } from "./modules/pricing/pricingRoutes.js";
+import { createSalesRouter } from "./modules/sales/salesRoutes.js";
 import { createDocsRouter } from "./docs/docsRoutes.js";
 
 export function createApp(configureRoutes?: (app: Express) => void): Express {
@@ -85,7 +86,10 @@ export function createApp(configureRoutes?: (app: Express) => void): Express {
   // 15. Commercial Dynamic Pricing & Spot Rates Module (FEAT-PRICE-01)
   app.use("/api/v1/pricing", createPricingRouter());
 
-  // 16. Interactive OpenAPI / Swagger Documentation
+  // 16. Point of Sale, Invoicing & Settlement Module (FEAT-SALES-01)
+  app.use("/api/v1/sales", createSalesRouter());
+
+  // 17. Interactive OpenAPI / Swagger Documentation
   app.use(createDocsRouter());
 
   // Custom route injection (useful for test harnesses and integration mocks)
