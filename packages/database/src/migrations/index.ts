@@ -39,6 +39,7 @@ import { migration00036CreateSalesPayments } from "./00036_create_sales_payments
 import { migration00037CreateSalesFinalization } from "./00037_create_sales_finalization.js";
 import { migration00038CreateSalesReturns } from "./00038_create_sales_returns.js";
 import { migration00039CreateGoldBuyback } from "./00039_create_gold_buyback.js";
+import { migration00040CreateStoreCredit } from "./00040_create_store_credit.js";
 
 export const allMigrations: MigrationDefinition[] = [
   migration00001CreateIamOrganizationsAndStores,
@@ -80,6 +81,7 @@ export const allMigrations: MigrationDefinition[] = [
   migration00037CreateSalesFinalization,
   migration00038CreateSalesReturns,
   migration00039CreateGoldBuyback,
+  migration00040CreateStoreCredit,
 ];
 
 /**
@@ -128,3 +130,4 @@ export * from "./00036_create_sales_payments.js";
 export * from "./00037_create_sales_finalization.js";
 export * from "./00038_create_sales_returns.js";
 export * from "./00039_create_gold_buyback.js";
+export * from "./00040_create_store_credit.js";

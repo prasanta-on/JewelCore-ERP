@@ -46,3 +46,4 @@ export * from "./repositories/salesInvoiceRepository.js";
 export * from "./repositories/salesPaymentRepository.js";
 export * from "./repositories/salesReturnRepository.js";
 export * from "./repositories/goldBuybackRepository.js";
+export * from "./repositories/storeCreditRepository.js";

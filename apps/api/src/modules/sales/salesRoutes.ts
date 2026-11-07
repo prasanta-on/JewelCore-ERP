@@ -33,6 +33,12 @@ import {
   getGoldBuybackOrderByIdHandler,
   listGoldBuybackOrdersHandler,
 } from "./goldBuybackController.js";
+import {
+  getStoreCreditAccountHandler,
+  adjustStoreCreditHandler,
+  redeemStoreCreditHandler,
+  listStoreCreditTransactionsHandler,
+} from "./storeCreditController.js";
 
 /**
  * Express router for Point of Sale, Invoicing, Customers and Settlement (FEAT-SALES).
@@ -149,6 +155,28 @@ export function createSalesRouter(): Router {
     "/buybacks/:id",
     requirePermission("buyback:order:view"),
     getGoldBuybackOrderByIdHandler,
+  );
+
+  // 6. Customer Store Credit & Immutable Ledger (Entities 56 & 57 - FEAT-RET-03 / INV-09)
+  router.get(
+    "/store-credits/customer/:customerId",
+    requirePermission("store_credit:view"),
+    getStoreCreditAccountHandler,
+  );
+  router.post(
+    "/store-credits/adjust",
+    requirePermission("store_credit:adjust"),
+    adjustStoreCreditHandler,
+  );
+  router.post(
+    "/store-credits/redeem",
+    requirePermission("sales:payment:record"),
+    redeemStoreCreditHandler,
+  );
+  router.get(
+    "/store-credits/accounts/:accountId/transactions",
+    requirePermission("store_credit:view"),
+    listStoreCreditTransactionsHandler,
   );
 
   return router;
