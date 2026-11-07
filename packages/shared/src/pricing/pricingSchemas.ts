@@ -387,3 +387,203 @@ export const resolveGemstoneRateQuerySchema = z.object({
 export type ResolveGemstoneRateQuery = z.infer<
   typeof resolveGemstoneRateQuerySchema
 >;
+
+/**
+ * Breakdown item for each evaluated gemstone mounted on a piece.
+ */
+export interface PriceBreakdownGemstoneItem {
+  itemGemstoneId?: string;
+  gemstoneId: string;
+  gemstoneName?: string;
+  caratWeight: number;
+  stoneCount?: number;
+  cutGrade?: string | null;
+  colorGrade?: string | null;
+  clarityGrade?: string | null;
+  ratePerCaratCad: number;
+  matrixId?: string | null;
+  totalCad: number;
+}
+
+/**
+ * Comprehensive transparent calculation breakdown for an item valuation.
+ */
+export interface PriceBreakdownDetails {
+  metal: {
+    metalType: MetalType;
+    netWeightGrams: number;
+    purityCode?: string;
+    purityRatio: number;
+    pureMetalWeightGrams: number;
+    spotRatePerGramCad: number;
+    marketRateId?: string | null;
+    totalCad: number;
+  };
+  gemstones: {
+    stoneCount: number;
+    totalCarats: number;
+    totalCad: number;
+    stones: PriceBreakdownGemstoneItem[];
+  };
+  makingCharge: {
+    policyId?: string | null;
+    policyName?: string | null;
+    chargeType: MakingChargeType;
+    chargeRate: number;
+    totalCad: number;
+  };
+  wastage: {
+    percentage: number;
+    totalCad: number;
+  };
+  ancillary: {
+    hallmarkingCad: number;
+    certificationCad: number;
+    totalCad: number;
+  };
+  summary: {
+    costPriceCad: number;
+    marginPercentage: number;
+    marginCad: number;
+    minRetailPriceCad?: number | null;
+    sellingPriceCad: number;
+  };
+}
+
+/**
+ * In-memory representation of an immutable price snapshot record (Entity 47 - FEAT-PRICE-04).
+ */
+export interface PriceSnapshotRecord {
+  id: string;
+  organizationId: string;
+  storeId: string;
+  inventoryItemId: string;
+  marketRateId: string | null;
+  pricingPolicyId: string | null;
+  metalComponentCad: number;
+  gemstoneComponentCad: number;
+  makingChargeCad: number;
+  wastageComponentCad: number;
+  ancillaryFeesCad: number;
+  costPriceCad: number;
+  marginComponentCad: number;
+  sellingPriceCad: number;
+  priceBreakdownJson: PriceBreakdownDetails;
+  currency: string;
+  triggeredByUserId: string | null;
+  createdAt: Date;
+}
+
+/**
+ * Gemstone input for custom price calculation / simulation.
+ */
+export const calculateCustomPriceGemstoneSchema = z.object({
+  gemstoneId: z.string().uuid("Invalid gemstone UUID format"),
+  caratWeight: z.number().positive("caratWeight must be strictly positive"),
+  stoneCount: z.number().int().min(1).default(1),
+  cutGrade: z.string().trim().max(30).optional().nullable(),
+  colorGrade: z.string().trim().max(30).optional().nullable(),
+  clarityGrade: z.string().trim().max(30).optional().nullable(),
+});
+
+export type CalculateCustomPriceGemstone = z.infer<
+  typeof calculateCustomPriceGemstoneSchema
+>;
+
+/**
+ * Zod schema for dynamic price calculation / simulation (FEAT-PRICE-04).
+ * Supports either an existing inventoryItemId or custom piece specs.
+ */
+export const calculatePriceRequestSchema = z
+  .object({
+    inventoryItemId: z
+      .string()
+      .uuid("Invalid inventory item UUID format")
+      .optional(),
+    storeId: z.string().uuid("Invalid store UUID format").optional().nullable(),
+    categoryId: z
+      .string()
+      .uuid("Invalid category UUID format")
+      .optional()
+      .nullable(),
+    productId: z
+      .string()
+      .uuid("Invalid product UUID format")
+      .optional()
+      .nullable(),
+    metalType: z.nativeEnum(MetalType).optional(),
+    netWeightGrams: z
+      .number()
+      .positive("netWeightGrams must be strictly positive")
+      .optional(),
+    purityRatio: z
+      .number()
+      .min(0, "purityRatio must be between 0 and 1")
+      .max(1, "purityRatio must be between 0 and 1")
+      .optional(),
+    gemstones: z
+      .array(calculateCustomPriceGemstoneSchema)
+      .optional()
+      .default([]),
+    marginPercentageOverride: z
+      .number()
+      .min(0, "marginPercentageOverride cannot be negative")
+      .max(10, "marginPercentageOverride cannot exceed 1000%")
+      .optional(),
+  })
+  .refine(
+    (data) =>
+      Boolean(data.inventoryItemId) ||
+      (Boolean(data.metalType) &&
+        data.netWeightGrams !== undefined &&
+        data.purityRatio !== undefined),
+    {
+      message:
+        "Either inventoryItemId or metal specifications (metalType, netWeightGrams, purityRatio) must be provided",
+      path: ["inventoryItemId"],
+    },
+  );
+
+export type CalculatePriceRequest = z.infer<typeof calculatePriceRequestSchema>;
+
+/**
+ * Zod schema for snapshotting piece price.
+ */
+export const snapshotPiecePriceSchema = z.object({
+  marginPercentageOverride: z
+    .number()
+    .min(0, "marginPercentageOverride cannot be negative")
+    .max(10, "marginPercentageOverride cannot exceed 1000%")
+    .optional(),
+});
+
+export type SnapshotPiecePriceInput = z.infer<typeof snapshotPiecePriceSchema>;
+
+/**
+ * Zod schema for batch revaluing store inventory.
+ */
+export const revalueStoreInventorySchema = z.object({
+  storeId: z.string().uuid("Invalid store UUID format"),
+  categoryId: z
+    .string()
+    .uuid("Invalid category UUID format")
+    .optional()
+    .nullable(),
+});
+
+export type RevalueStoreInventoryInput = z.infer<
+  typeof revalueStoreInventorySchema
+>;
+
+/**
+ * Zod schema for querying historical price snapshots.
+ */
+export const listPriceSnapshotsQuerySchema = z.object({
+  storeId: z.string().uuid("Invalid store UUID format").optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+
+export type ListPriceSnapshotsQuery = z.infer<
+  typeof listPriceSnapshotsQuerySchema
+>;

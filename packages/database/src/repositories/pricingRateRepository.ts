@@ -144,14 +144,17 @@ export async function recordDailyMarketRate(
  * If storeId is provided and a store-specific rate exists, it takes precedence.
  * Otherwise, falls back to the organization-wide corporate default rate (store_id IS NULL).
  */
-export async function getLatestEffectiveRate(params: {
-  organizationId: string;
-  metalType: MetalType;
-  storeId?: string | null;
-  currency?: string;
-  atDate?: Date;
-}): Promise<DailyMarketRateRecord | null> {
-  const pool = getPool();
+export async function getLatestEffectiveRate(
+  params: {
+    organizationId: string;
+    metalType: MetalType;
+    storeId?: string | null;
+    currency?: string;
+    atDate?: Date;
+  },
+  clientOverride?: Queryable,
+): Promise<DailyMarketRateRecord | null> {
+  const client = clientOverride || getPool();
   const currency = params.currency ?? "CAD";
   const targetDate = params.atDate ?? new Date();
 
@@ -169,7 +172,7 @@ export async function getLatestEffectiveRate(params: {
       ORDER BY effective_from DESC
       LIMIT 1;
     `;
-    const storeRes = await pool.query<DailyMarketRateRow>(storeQuery, [
+    const storeRes = await client.query<DailyMarketRateRow>(storeQuery, [
       params.organizationId,
       params.storeId,
       params.metalType,
@@ -196,7 +199,7 @@ export async function getLatestEffectiveRate(params: {
     ORDER BY effective_from DESC
     LIMIT 1;
   `;
-  const orgRes = await pool.query<DailyMarketRateRow>(orgQuery, [
+  const orgRes = await client.query<DailyMarketRateRow>(orgQuery, [
     params.organizationId,
     params.metalType,
     currency,

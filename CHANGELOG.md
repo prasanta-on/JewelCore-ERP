@@ -9,6 +9,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-07
+
+### Added
+
+- **Precious Metal Spot Rates Registry (`FEAT-PRICE-01`, Entity 44)**:
+  - Created `daily_market_rates` table (Entity 44) tracking precious metal spot prices (`GOLD`, `SILVER`, `PLATINUM`, `PALLADIUM`) per gram in CAD.
+  - Implemented `recordDailyMarketRate`, `getLatestEffectiveRate`, and `listDailyMarketRates` repository methods with store-level overrides and corporate-wide defaults.
+  - Enforced `INV-09` Append-Only Immutability: PostgreSQL database trigger `trg_daily_market_rates_immutability` strictly prohibits `UPDATE` and `DELETE` queries.
+  - Seeded permissions: `pricing:rate:create`, `pricing:rate:view`, `pricing:policy:manage`, `pricing:calculate`.
+  - Implemented REST API endpoints:
+    - `POST /api/v1/pricing/rates` (`pricing:rate:create`) - Record and publish precious metal market spot rate.
+    - `GET /api/v1/pricing/rates/latest` (`pricing:rate:view`) - Resolve effective market spot rate for metal type and store.
+    - `GET /api/v1/pricing/rates` (`pricing:rate:view`) - List spot rates with metal, status, and pagination filters.
+    - `GET /api/v1/pricing/rates/:id` (`pricing:rate:view`) - Retrieve spot rate by ID.
+
+- **Making Charge Rules & Pricing Policies (`FEAT-PRICE-02`, Entity 45)**:
+  - Created `pricing_policies` table (Entity 45) governing making/labour charge models (`PER_GRAM`, `FIXED_PIECE`, `PERCENTAGE_OF_METAL`), wastage percentage, hallmarking and certification fees, default margins, and minimum retail floor prices.
+  - Implemented hierarchical waterfall specificity resolution: Product+Store -> Product Corporate -> Category+Store -> Category Corporate -> Store Default -> Corporate Default.
+  - Seeded permission `pricing:policy:view` (granted to `SYSTEM_ADMIN`, `STORE_MANAGER`, `SALES_ASSOCIATE`, `INVENTORY_CONTROLLER`).
+  - Implemented REST API endpoints:
+    - `POST /api/v1/pricing/policies` (`pricing:policy:manage`) - Create pricing policy.
+    - `PATCH /api/v1/pricing/policies/:id` (`pricing:policy:manage`) - Update pricing policy.
+    - `GET /api/v1/pricing/policies/resolve` (`pricing:policy:view`) - Resolve applicable pricing policy via waterfall resolution.
+    - `GET /api/v1/pricing/policies` (`pricing:policy:view`) - List pricing policies with filtering and pagination.
+    - `GET /api/v1/pricing/policies/:id` (`pricing:policy:view`) - Lookup pricing policy by ID.
+
+- **Gemstone Valuation Matrix (`FEAT-PRICE-03`, Entity 46)**:
+  - Created `gemstone_price_matrices` table (Entity 46) providing 4Cs grading rates (carat weight bracket, cut grade, color grade, clarity grade) per carat in CAD.
+  - Implemented scored specificity ranking waterfall query in PostgreSQL: exact 4Cs matches rank highest, gracefully falling back to color+clarity, clarity, or baseline carat tier brackets.
+  - Seeded permissions `pricing:matrix:manage` and `pricing:matrix:view`.
+  - Implemented REST API endpoints:
+    - `POST /api/v1/pricing/gemstone-matrices` (`pricing:matrix:manage`) - Create valuation matrix entry.
+    - `PATCH /api/v1/pricing/gemstone-matrices/:id` (`pricing:matrix:manage`) - Update matrix rate per carat.
+    - `GET /api/v1/pricing/gemstone-matrices/resolve` (`pricing:matrix:view`) - Resolve best matching gemstone rate per carat.
+    - `GET /api/v1/pricing/gemstone-matrices` (`pricing:matrix:view`) - List matrix entries with gemstone filtering.
+    - `GET /api/v1/pricing/gemstone-matrices/:id` (`pricing:matrix:view`) - Retrieve matrix entry by ID.
+
+- **Dynamic Price Calculator & Snapshot Engine (`FEAT-PRICE-04`, Entity 47)**:
+  - Created `price_snapshots` table (Entity 47) capturing point-in-time commercial piece valuations with complete multi-component cost breakdowns.
+  - Implemented mathematical valuation formula:
+    - Fine metal component: $\text{net weight} \times \text{purity ratio} \times \text{24K spot rate}$.
+    - Gemstones: $\sum (\text{carat weight} \times \text{resolved rate/ct})$.
+    - Making charge: resolved policy $\text{PER\_GRAM} \mid \text{FIXED\_PIECE} \mid \text{PERCENTAGE\_OF\_METAL}$.
+    - Wastage: metal cost $\times$ wastage $\%$.
+    - Ancillary fees: hallmarking fee $+$ certification fee.
+    - Cost price: metal $+$ gemstones $+$ making $+$ wastage $+$ ancillary.
+    - Selling price: $\max(\text{cost price} \times (1 + \text{margin}), \text{min retail floor})$.
+  - Implemented atomic piece snapshotting (`snapshotPiecePrice`) with OCC row version locking (`version = version + 1`) and automatic update of `inventory_items.cost_price_cad` and `selling_price_cad`.
+  - Implemented store-wide batch revaluation (`revalueStoreInventory`) to recalculate and snapshot all sellable inventory pieces upon market spot rate shifts.
+  - Implemented sales-floor simulation tool (`calculateCustomValuation`) for ad-hoc quotation without database mutations.
+  - Enforced `INV-09` Append-Only Immutability: database trigger `trg_price_snapshots_immutability` strictly prohibits `UPDATE` and `DELETE` queries on `price_snapshots`.
+  - Seeded permissions: `pricing:revalue` (granted to `SYSTEM_ADMIN`, `STORE_MANAGER`) and `pricing:snapshot:view` (granted to `SYSTEM_ADMIN`, `STORE_MANAGER`, `SALES_ASSOCIATE`, `INVENTORY_CONTROLLER`).
+  - Implemented REST API endpoints:
+    - `POST /api/v1/pricing/calculate` (`pricing:calculate`) - Simulate piece valuation or preview item calculation.
+    - `POST /api/v1/pricing/items/:id/snapshot` (`pricing:calculate`) - Calculate, store immutable snapshot, and update inventory piece prices.
+    - `POST /api/v1/pricing/revalue-store` (`pricing:revalue`) - Batch revalue all inventory items in a store branch.
+    - `GET /api/v1/pricing/items/:id/snapshots` (`pricing:snapshot:view`) - View historical price snapshot ledger for a piece.
+    - `GET /api/v1/pricing/snapshots` (`pricing:snapshot:view`) - List price snapshots with store and pagination filters.
+    - `GET /api/v1/pricing/snapshots/:id` (`pricing:snapshot:view`) - Retrieve single snapshot and breakdown by ID.
+
 ## [0.6.0] - 2026-11-07
 
 ### Added

@@ -24,6 +24,13 @@ import {
   listGemstonePriceMatricesHandler,
   resolveGemstoneRateHandler,
 } from "./gemstonePriceMatrixController.js";
+import {
+  calculatePriceHandler,
+  snapshotPiecePriceHandler,
+  revalueStoreInventoryHandler,
+  listPriceSnapshotsHandler,
+  getPriceSnapshotByIdHandler,
+} from "./priceSnapshotController.js";
 
 export function createPricingRouter(): Router {
   const router = Router();
@@ -108,6 +115,38 @@ export function createPricingRouter(): Router {
     "/gemstone-matrices/:id",
     requirePermission("pricing:matrix:manage"),
     updateGemstonePriceMatrixHandler,
+  );
+
+  // Dynamic Price Calculator & Snapshot Engine (Entity 47 - FEAT-PRICE-04)
+  router.post(
+    "/calculate",
+    requirePermission("pricing:calculate"),
+    calculatePriceHandler,
+  );
+  router.post(
+    "/items/:id/snapshot",
+    requirePermission("pricing:calculate"),
+    snapshotPiecePriceHandler,
+  );
+  router.post(
+    "/revalue-store",
+    requirePermission("pricing:revalue"),
+    revalueStoreInventoryHandler,
+  );
+  router.get(
+    "/items/:id/snapshots",
+    requirePermission("pricing:snapshot:view"),
+    listPriceSnapshotsHandler,
+  );
+  router.get(
+    "/snapshots",
+    requirePermission("pricing:snapshot:view"),
+    listPriceSnapshotsHandler,
+  );
+  router.get(
+    "/snapshots/:id",
+    requirePermission("pricing:snapshot:view"),
+    getPriceSnapshotByIdHandler,
   );
 
   return router;
