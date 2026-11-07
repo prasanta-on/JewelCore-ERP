@@ -10,6 +10,13 @@ import {
   getDailyMarketRateHandler,
   listDailyMarketRatesHandler,
 } from "./pricingRateController.js";
+import {
+  createPricingPolicyHandler,
+  updatePricingPolicyHandler,
+  getPricingPolicyHandler,
+  listPricingPoliciesHandler,
+  resolvePricingPolicyHandler,
+} from "./pricingPolicyController.js";
 
 export function createPricingRouter(): Router {
   const router = Router();
@@ -40,6 +47,33 @@ export function createPricingRouter(): Router {
     "/rates/:id",
     requirePermission("pricing:rate:view"),
     getDailyMarketRateHandler,
+  );
+
+  // Making Charge Rules & Pricing Policies (Entity 45 - FEAT-PRICE-02)
+  router.post(
+    "/policies",
+    requirePermission("pricing:policy:manage"),
+    createPricingPolicyHandler,
+  );
+  router.get(
+    "/policies/resolve",
+    requirePermission("pricing:policy:view"),
+    resolvePricingPolicyHandler,
+  );
+  router.get(
+    "/policies",
+    requirePermission("pricing:policy:view"),
+    listPricingPoliciesHandler,
+  );
+  router.get(
+    "/policies/:id",
+    requirePermission("pricing:policy:view"),
+    getPricingPolicyHandler,
+  );
+  router.patch(
+    "/policies/:id",
+    requirePermission("pricing:policy:manage"),
+    updatePricingPolicyHandler,
   );
 
   return router;
