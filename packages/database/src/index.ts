@@ -37,3 +37,4 @@ export * from "./repositories/rfidAssignmentRepository.js";
 export * from "./repositories/stockApprovalRepository.js";
 export * from "./repositories/rfidJobRepository.js";
 export * from "./repositories/auditEventRepository.js";
+export * from "./repositories/pricingRateRepository.js";

@@ -29,6 +29,7 @@ import { migration00026CreateRfidTagAssignments } from "./00026_create_rfid_tag_
 import { migration00027CreateStockApprovals } from "./00027_create_stock_approvals.js";
 import { migration00028CreateRfidJobs } from "./00028_create_rfid_jobs.js";
 import { migration00029CreateAuditEvents } from "./00029_create_audit_events.js";
+import { migration00030CreatePricingMetalRates } from "./00030_create_pricing_metal_rates.js";
 
 export const allMigrations: MigrationDefinition[] = [
   migration00001CreateIamOrganizationsAndStores,
@@ -60,6 +61,7 @@ export const allMigrations: MigrationDefinition[] = [
   migration00027CreateStockApprovals,
   migration00028CreateRfidJobs,
   migration00029CreateAuditEvents,
+  migration00030CreatePricingMetalRates,
 ];
 
 /**
@@ -98,3 +100,4 @@ export * from "./00026_create_rfid_tag_assignments.js";
 export * from "./00027_create_stock_approvals.js";
 export * from "./00028_create_rfid_jobs.js";
 export * from "./00029_create_audit_events.js";
+export * from "./00030_create_pricing_metal_rates.js";

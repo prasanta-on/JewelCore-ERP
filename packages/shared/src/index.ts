@@ -52,3 +52,4 @@ export * from "./governance/index.js";
 export * from "./qc/index.js";
 export * from "./inventory/index.js";
 export * from "./rfid/index.js";
+export * from "./pricing/index.js";
